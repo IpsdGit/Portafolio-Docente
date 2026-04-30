@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+{% block title %}Expediente del Docente{% endblock %}
+
+{% block body %}
+<nav class="navbar-institucional d-flex align-items-center justify-content-between">
+  <div>
+    <div class="brand-text"><i class="bi bi-person-vcard-fill me-2"></i>Expediente Docente</div>
+    <div class="brand-sub">Monitoreo y Reclasificación · UNAH</div>
+  </div>
+  <div class="d-flex align-items-center gap-3">
+    <button onclick="generarPDF()" class="btn-export" style="background: white; color: var(--azul-oscuro); border: none; font-size: 0.85rem; font-weight: 700; padding: 0.4rem 1rem; margin-right: 1rem;">
+      <i class="bi bi-filetype-pdf me-1" style="color: #DC2626; font-size: 1.1rem;"></i> Descargar PDF
+    </button>
+    <a href="{{ url_for('panel_admin') }}" style="color: white; font-weight: 500; text-decoration: none; font-size: 0.9rem;"><i class="bi bi-arrow-left me-1"></i>Volver al Panel</a>
+  </div>
+</nav>
+
+<div class="main-content" id="area-impresion" style="background: white;">
+  
+  <div class="solo-pdf text-center mb-4" style="display: none;">
+    <h2 style="color: var(--azul-oscuro); font-weight: 800; margin: 0;">Universidad Nacional Autónoma de Honduras</h2>
+    <h4 style="color: #475569; font-weight: 600; margin-top: 0.5rem;">Reporte de Portafolio Docente</h4>
+    <hr style="border-color: var(--borde); margin: 1.5rem 0;">
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="alert-pro {{ category }} fade-in-up mt-2 mb-4">
+        {% if category == 'danger' %}<i class="bi bi-x-circle-fill"></i>
+        {% elif category == 'success' %}<i class="bi bi-check-circle-fill"></i>
+        {% else %}<i class="bi bi-info-circle-fill"></i>{% endif %}
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="card-pro fade-in-up mb-4" style="border-top: 4px solid var(--dorado); box-shadow: none; border: 1px solid var(--borde);">
+    <div class="card-pro-body d-flex justify-content-between align-items-start">
+      <div class="d-flex gap-4 align-items-center">
+        {% if docente.foto_url %}
+          <img src="{{ docente.foto_url }}" alt="Foto de perfil" style="width: 100px; height: 100px; object-fit: cover; border-radius: 50%; border: 3px solid #E2E8F0;">
+        {% else %}
+          <div style="width: 100px; height: 100px; border-radius: 50%; background: var(--dorado); display: flex; align-items: center; justify-content: center; font-size: 2.5rem; color: var(--azul-oscuro); font-weight: 800;">
+            {{ docente.nombre[0]|upper }}
+          </div>
+        {% endif %}
+        <div>
+          <h3 style="color: var(--azul-oscuro); font-weight: 800; margin-bottom: 0.3rem;">{{ docente.nombre }}</h3>
+          <p class="text-muted mb-3"><i class="bi bi-envelope-at-fill me-2"></i>{{ docente.correo }}</p>
+          
+          <div class="d-flex flex-wrap gap-4">
+            <div>
+              <small style="color: var(--texto-suave); font-weight: 600; text-transform: uppercase;">Facultad / Depto</small>
+              <div style="font-size: 1rem; font-weight: 600; color: #1E293B;">{{ docente.facultad or 'N/D' }} - {{ docente.departamento or 'N/D' }}</div>
+            </div>
+
+            <div>
+              <small style="color: var(--texto-suave); font-weight: 600; text-transform: uppercase;">Cargo Administrativo</small>
+              <div style="font-size: 1rem; font-weight: 600; color: #1E293B;">{{ docente.responsabilidad or 'Ninguna' }}</div>
+            </div>
+            
+            <div>
+              <small style="color: var(--texto-suave); font-weight: 600; text-transform: uppercase;">Horas Formación</small>
+              <div style="font-size: 1rem; font-weight: 600; color: var(--exito);">{{ horas_totales }} horas validadas</div>
+            </div>
+
+            {% if docente.cv_url %}
+            <div class="ocultar-en-pdf">
+              <small style="color: var(--texto-suave); font-weight: 600; text-transform: uppercase;">CV Oficial</small><br>
+              <a href="{{ docente.cv_url }}" target="_blank" class="badge bg-success text-white text-decoration-none" style="padding: .4rem .8rem; font-size: .8rem;"><i class="bi bi-file-earmark-pdf-fill me-1"></i>Ver Documento</a>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% if titulos %}
+    <div style="background: #FFFBEB; border-top: 1px solid #FDE68A; padding: 1.2rem 1.5rem;">
+      <h6 style="color: #92400E; font-weight: 700; margin-bottom: 1rem;"><i class="bi bi-mortarboard-fill me-2"></i>Títulos Académicos Registrados</h6>
+      <div class="row g-3">
+        {% for titulo in titulos %}
+        <div class="col-md-4">
+          <small style="color: #B45309; font-weight: 600; text-transform: uppercase; font-size: 0.75rem;">{{ titulo.nivel }}</small>
+          <div style="font-size: 0.9rem; font-weight: 600; color: #78350F; margin-bottom: 0.3rem; line-height: 1.2;">{{ titulo.nombre_titulo }}</div>
+          {% if titulo.url_archivo %}
+            <a href="{{ titulo.url_archivo }}" target="_blank" class="badge bg-primary text-white text-decoration-none ocultar-en-pdf" style="font-size: 0.75rem;"><i class="bi bi-patch-check-fill me-1"></i>Ver Título</a>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+    
+    {% if docente.curriculum or docente.filosofia_ensenanza or docente.redes_sociales or docente.premios %}
+    <div style="background: #F8FAFC; padding: 1.5rem; border-top: 1px solid var(--borde);">
+      <div class="row g-4">
+        {% if docente.curriculum %}
+        <div class="col-md-6">
+          <h6 style="color: var(--azul-oscuro); font-weight: 700;"><i class="bi bi-file-person-fill me-2" style="color:var(--azul-claro)"></i>Currículum Resumido</h6>
+          <p style="font-size: 0.85rem; color: #475569; margin: 0; white-space: pre-wrap;">{{ docente.curriculum }}</p>
+        </div>
+        {% endif %}
+        {% if docente.filosofia_ensenanza %}
+        <div class="col-md-6">
+          <h6 style="color: var(--azul-oscuro); font-weight: 700;"><i class="bi bi-quote me-2" style="color:var(--dorado)"></i>Filosofía de Enseñanza</h6>
+          <p style="font-size: 0.85rem; color: #475569; margin: 0; white-space: pre-wrap;">{{ docente.filosofia_ensenanza }}</p>
+        </div>
+        {% endif %}
+        {% if docente.premios %}
+        <div class="col-md-6">
+          <h6 style="color: var(--azul-oscuro); font-weight: 700;"><i class="bi bi-trophy-fill me-2" style="color:var(--exito)"></i>Premios y Reconocimientos</h6>
+          <p style="font-size: 0.85rem; color: #475569; margin: 0; white-space: pre-wrap;">{{ docente.premios }}</p>
+        </div>
+        {% endif %}
+        {% if docente.redes_sociales %}
+        <div class="col-md-6">
+          <h6 style="color: var(--azul-oscuro); font-weight: 700;"><i class="bi bi-globe2 me-2" style="color:#0284C7"></i>Redes Académicas</h6>
+          <p style="font-size: 0.85rem; color: #475569; margin: 0; white-space: pre-wrap;">{{ docente.redes_sociales }}</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-6 fade-in-up delay-1">
+      <h5 style="color: var(--azul-oscuro); font-weight: 700; margin-bottom: 1rem;"><i class="bi bi-book-half me-2"></i>Asignaturas Impartidas</h5>
+      {% if clases %}
+        <div class="d-flex flex-column gap-3">
+          {% for clase in clases %}
+          <div class="card-pro" style="box-shadow: none; border: 1px solid var(--borde);">
+            <div class="card-pro-header" style="padding: 1rem;">
+              <h6 style="margin:0; font-weight: 700;">{{ clase.nombre_espacio }} <span class="badge-pro" style="background:#E2E8F0; color:#475569; font-size:.7rem;">{{ clase.codigo }}</span></h6>
+              <small class="text-muted">Periodo: {{ clase.periodo }} | Modalidad: {{ clase.modalidad }} | Naturaleza: {{ clase.naturaleza or 'N/D' }} | UV: {{ clase.uv_ca or 'N/D' }}</small>
+            </div>
+            <div class="card-pro-body" style="padding: 1rem; background: #F8FAFC;">
+              {% if clase.evidencias %}
+                <ul style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:.5rem;">
+                  {% for ev in clase.evidencias %}
+                  <li style="background: white; border: 1px solid var(--borde); border-radius: 6px; padding: .5rem .8rem; display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                      <strong style="color: var(--azul-oscuro); font-size: .8rem;">{{ ev.tipo_evidencia }}</strong>
+                      <div style="color: var(--texto-suave); font-size: .75rem;">{{ ev.nombre }}</div>
+                      {% if ev.estado_evaluacion and ev.estado_evaluacion != 'Sin Revisar' %}
+                        <span class="badge {% if ev.estado_evaluacion == 'Excelente' %}bg-success{% elif ev.estado_evaluacion == 'Con Observaciones' %}bg-warning text-dark{% else %}bg-secondary{% endif %} mt-1" style="font-size: 0.65rem;">{{ ev.estado_evaluacion }}</span>
+                      {% endif %}
+                    </div>
+                    <div class="d-flex gap-1">
+                        <a href="{{ ev.url_archivo }}" target="_blank" class="btn-icon azul ocultar-en-pdf" style="width:26px; height:26px; font-size:.7rem;" title="Ver archivo"><i class="bi bi-eye-fill"></i></a>
+                        <button class="btn-icon ocultar-en-pdf" style="background: var(--dorado); color: var(--azul-oscuro); width:26px; height:26px; font-size:.7rem;" title="Dejar Feedback" data-bs-toggle="modal" data-bs-target="#modalFeedback{{ ev.id }}">
+                            <i class="bi bi-chat-dots-fill"></i>
+                        </button>
+                    </div>
+                  </li>
+                  {% endfor %}
+                </ul>
+              {% else %}
+                <p class="text-muted" style="margin:0; font-size:.8rem;">Sin evidencias registradas.</p>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="card-pro card-pro-body text-center text-muted" style="padding: 3rem 1rem;">No ha registrado asignaturas.</div>
+      {% endif %}
+    </div>
+
+    <div class="col-lg-6 fade-in-up delay-2">
+      <h5 style="color: var(--azul-oscuro); font-weight: 700; margin-bottom: 1rem;"><i class="bi bi-award-fill me-2"></i>Historial de Formación</h5>
+      {% if certificados %}
+        <div class="d-flex flex-column gap-3">
+          {% for cert in certificados %}
+          <div class="card-pro" style="box-shadow: none; border: 1px solid var(--borde); border-left: 4px solid {% if cert.estado == 'Aprobado' %}var(--exito){% elif cert.estado == 'Pendiente' %}var(--dorado){% else %}var(--peligro){% endif %};">
+            <div class="card-pro-body" style="padding: 1rem; display:flex; justify-content:space-between; align-items:flex-start;">
+              <div>
+                <h6 style="margin:0; font-weight: 700; font-size: 0.95rem;">{{ cert.nombre_actividad }}</h6>
+                <div style="font-size: 0.8rem; color: var(--texto-suave); margin-top: 0.2rem;">
+                  <i class="bi bi-building me-1"></i>{{ cert.institucion }} | <i class="bi bi-clock me-1"></i>{{ cert.horas }} horas
+                </div>
+              </div>
+              <div class="text-end">
+                <span class="badge-pro badge-{{ cert.estado|lower }} mb-2" style="display:inline-block;">{{ cert.estado }}</span>
+                <br>
+                <a href="{{ cert.url_archivo }}" target="_blank" class="btn-export ocultar-en-pdf" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;"><i class="bi bi-download"></i> Ver</a>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="card-pro card-pro-body text-center text-muted" style="padding: 3rem 1rem;">No ha subido certificados.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% for clase in clases %}
+  {% for ev in clase.evidencias %}
+  <div class="modal fade" id="modalFeedback{{ ev.id }}" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content border-0" style="border-radius: 12px; overflow: hidden;">
+        <div class="modal-header" style="background:var(--azul-oscuro); color:white; border:none;">
+          <h5 class="modal-title" style="color:white; font-weight: 600;"><i class="bi bi-chat-left-text-fill me-2"></i>Feedback de Evidencia</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <form action="{{ url_for('evaluar_evidencia', ev_id=ev.id) }}" method="POST">
+          <div class="modal-body p-4" style="background: #F8FAFC;">
+            
+            <div style="background: white; border: 1px solid var(--borde); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+                <p style="margin: 0; font-size: 0.9rem;"><strong>Archivo:</strong> {{ ev.nombre }}<br>
+                <strong>Categoría:</strong> <span style="color: var(--azul-oscuro); font-weight: 600;">{{ ev.tipo_evidencia }}</span></p>
+            </div>
+
+            <div class="mb-form">
+              <label class="form-label-pro">Evaluación</label>
+              <select name="estado_evaluacion" class="form-control-pro bg-white" required>
+                <option value="Sin Revisar" {% if ev.estado_evaluacion == 'Sin Revisar' %}selected{% endif %}>➖ Sin Revisar</option>
+                <option value="Excelente" {% if ev.estado_evaluacion == 'Excelente' %}selected{% endif %}>⭐ Excelente</option>
+                <option value="Con Observaciones" {% if ev.estado_evaluacion == 'Con Observaciones' %}selected{% endif %}>✍️ Con Observaciones</option>
+                <option value="Debe Mejorar" {% if ev.estado_evaluacion == 'Debe Mejorar' %}selected{% endif %}>🔄 Debe Mejorar</option>
+              </select>
+            </div>
+            <div class="mb-form">
+              <label class="form-label-pro">Comentario para el Docente</label>
+              <textarea name="comentario_admin" class="form-control-pro bg-white" rows="4" placeholder="Escribe tus sugerencias, felicitaciones o recomendaciones de mejora...">{{ ev.comentario_admin or '' }}</textarea>
+            </div>
+          </div>
+          <div class="modal-footer" style="background: #F8FAFC; border-top: 1px solid var(--borde);">
+            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn-primary-pro" style="width:auto;"><i class="bi bi-send-fill me-1"></i> Enviar Feedback</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+{% endfor %}
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+  function generarPDF() {
+    document.querySelector('.solo-pdf').style.display = 'block';
+    const elementosOcultos = document.querySelectorAll('.ocultar-en-pdf');
+    elementosOcultos.forEach(el => el.style.display = 'none');
+    
+    const elementosAnimados = document.querySelectorAll('.fade-in-up');
+    elementosAnimados.forEach(el => {
+      el.style.opacity = '1';
+      el.style.animation = 'none';
+      el.style.transform = 'none';
+    });
+
+    const area = document.getElementById('area-impresion');
+    const opciones = {
+      margin:       0.5, 
+      filename:     'Expediente_UNAH_{{ docente.nombre | replace(" ", "_") }}.pdf',
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true }, 
+      jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+
+    html2pdf().set(opciones).from(area).save().then(() => {
+      document.querySelector('.solo-pdf').style.display = 'none';
+      elementosOcultos.forEach(el => el.style.display = '');
+    });
+  }
+</script>
+{% endblock %}
