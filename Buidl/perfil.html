@@ -1,0 +1,511 @@
+{% extends "base.html" %}
+{% block title %}Mi Perfil Académico{% endblock %}
+
+{% block body %}
+<nav class="navbar-institucional d-flex align-items-center justify-content-between">
+  <div>
+    <div class="brand-text"><i class="bi bi-mortarboard-fill me-2"></i>Portafolio Docente</div>
+    <div class="brand-sub">Sistema Institucional · UNAH</div>
+  </div>
+  <div class="d-flex align-items-center">
+    
+    <div class="dropdown me-4">
+      <div class="position-relative d-flex align-items-center" style="cursor: pointer;" data-bs-toggle="dropdown" aria-expanded="false" title="Notificaciones">
+        <i class="bi bi-bell-fill" style="font-size: 1.3rem; color: #94A3B8; transition: color 0.2s;" onmouseover="this.style.color='white'" onmouseout="this.style.color='#94A3B8'"></i>
+        {% if total_notificaciones > 0 %}
+        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light" style="font-size: 0.65rem; padding: 0.25em 0.45em;">
+          {{ total_notificaciones }}
+        </span>
+        {% endif %}
+      </div>
+      <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="width: 320px; max-height: 400px; overflow-y: auto; border-radius: 12px; margin-top: 10px;">
+        <li class="px-3 py-2 border-bottom">
+          <strong style="color: var(--azul-oscuro); font-size: 0.9rem;">Notificaciones ({{ total_notificaciones }})</strong>
+        </li>
+        {% if total_notificaciones > 0 %}
+          {% for notif in notificaciones_detalle %}
+          <li>
+            <a class="dropdown-item py-3 border-bottom" href="{{ url_for('detalle_clase', clase_id=notif.clase_id) }}#evidencia-{{ notif.ev_id }}" style="white-space: normal; transition: background 0.2s;" onmouseover="this.style.backgroundColor='#F8FAFC'" onmouseout="this.style.backgroundColor='white'">
+              <div class="d-flex align-items-start gap-2">
+                <div style="background: #FEF2F2; color: #DC2626; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                  <i class="bi bi-chat-dots-fill"></i>
+                </div>
+                <div>
+                  <div style="font-size: 0.8rem; font-weight: 700; color: var(--azul-oscuro); line-height: 1.2; margin-bottom: 0.2rem;">Feedback en {{ notif.nombre_espacio }}</div>
+                  <div style="font-size: 0.75rem; color: #475569; margin-bottom: 0.2rem;"><strong>{{ notif.tipo_evidencia }}:</strong> "{{ notif.comentario_admin[:40] }}..."</div>
+                </div>
+              </div>
+            </a>
+          </li>
+          {% endfor %}
+        {% else %}
+          <li class="px-3 py-4 text-center text-muted">
+            <i class="bi bi-bell-slash" style="font-size: 2rem; color: #CBD5E1;"></i>
+            <p style="font-size: 0.85rem; margin-top: 0.5rem; margin-bottom: 0;">No tienes nuevas notificaciones.</p>
+          </li>
+        {% endif %}
+      </ul>
+    </div>
+
+    <div style="text-align:right;">
+      <div class="nav-user fw-bold" style="color: white; font-size: 0.95rem;">{{ nombre }}</div>
+      <div class="brand-sub">Docente</div>
+    </div>
+    <div style="width:38px;height:38px;border-radius:50%;background:var(--dorado);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--azul-oscuro);font-size:1rem; margin-left: 0.5rem;">
+      {{ nombre[0]|upper }}
+    </div>
+    <a href="{{ url_for('logout') }}" class="btn-logout" style="margin-left: 0.8rem;"><i class="bi bi-box-arrow-right me-1"></i>Salir</a>
+  </div>
+</nav>
+
+<div style="background-color: var(--azul-oscuro); padding: 0 2rem; border-top: 1px solid rgba(255,255,255,0.05); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 1.5rem;">
+  <div class="d-flex gap-4">
+    <a href="{{ url_for('ver_perfil') }}" style="text-decoration: none; padding: 0.8rem 0.5rem; font-weight: 600; font-size: 0.95rem; transition: 0.2s; color: var(--dorado); border-bottom: 3px solid var(--dorado);">
+      <i class="bi bi-person-fill me-2"></i>Mi Perfil
+    </a>
+    <a href="{{ url_for('inicio_docente') }}" style="text-decoration: none; padding: 0.8rem 0.5rem; font-weight: 600; font-size: 0.95rem; transition: 0.2s; color: #94A3B8; border-bottom: 3px solid transparent;" onmouseover="this.style.color='white'" onmouseout="this.style.color='#94A3B8'">
+      <i class="bi bi-patch-check-fill me-2"></i>Certificados
+    </a>
+    <a href="{{ url_for('mis_clases') }}" style="text-decoration: none; padding: 0.8rem 0.5rem; font-weight: 600; font-size: 0.95rem; transition: 0.2s; color: #94A3B8; border-bottom: 3px solid transparent;" onmouseover="this.style.color='white'" onmouseout="this.style.color='#94A3B8'">
+      <i class="bi bi-folder-fill me-2"></i>Mis Clases
+    </a>
+  </div>
+</div>
+
+<div class="main-content pt-0">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="alert-pro {{ category }} fade-in-up">
+        {% if category == 'danger' %}<i class="bi bi-x-circle-fill"></i>
+        {% elif category == 'success' %}<i class="bi bi-check-circle-fill"></i>
+        {% else %}<i class="bi bi-info-circle-fill"></i>{% endif %}
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="row g-4 fade-in-up delay-1">
+
+    <div class="col-lg-4">
+
+      <div class="card-pro mb-4 text-center">
+        <div class="card-pro-body d-flex flex-column align-items-center">
+          {% if perfil and perfil.foto_url %}
+            <img src="{{ perfil.foto_url }}" alt="Foto Perfil" style="width:180px; height:180px; border-radius:50%; object-fit:cover; border: 4px solid #E2E8F0; margin-bottom: 1rem;">
+          {% else %}
+            <div style="width:180px; height:180px; border-radius:50%; background:var(--dorado); color:var(--azul-oscuro); display:flex; align-items:center; justify-content:center; font-size:4rem; font-weight:800; border: 4px solid #E2E8F0; margin-bottom: 1rem;">
+              {{ nombre[0]|upper }}
+            </div>
+          {% endif %}
+          <h5 style="color: var(--azul-oscuro); font-weight:800;">{{ nombre }}</h5>
+          <p class="text-muted" style="font-size: .85rem;">Docente Universitario</p>
+
+          <form action="{{ url_for('ver_perfil') }}" method="POST" enctype="multipart/form-data" class="w-100 mt-2">
+            <input type="hidden" name="accion" value="subir_foto">
+            <input type="file" name="foto_file" class="form-control-pro mb-2" accept=".jpg,.jpeg,.png" style="font-size: .75rem; padding: .4rem;" required>
+            <button type="submit" class="btn-export w-100" style="background: white; border: 1px solid var(--azul-claro); color: var(--azul-claro); font-weight: 600;">
+              <i class="bi bi-camera-fill me-1"></i> Actualizar Foto
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <div class="card-pro mb-4">
+        <div class="card-pro-header" style="background: #F8FAFC; border-bottom: 1px solid var(--borde);">
+          <h6 style="margin:0; color: var(--texto-suave); font-weight: 700;"><i class="bi bi-shield-lock-fill me-2"></i>Seguridad de la Cuenta</h6>
+        </div>
+        <div class="card-pro-body text-center p-3">
+          <button class="btn-export w-100" style="background: white; border: 1px solid #CBD5E1; color: #475569; font-weight: 600;" data-bs-toggle="modal" data-bs-target="#modalPassword">
+            <i class="bi bi-key-fill me-1"></i> Cambiar Contraseña
+          </button>
+        </div>
+      </div>
+
+      <form action="{{ url_for('ver_perfil') }}" method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="accion" value="guardar_perfil">
+
+        <div class="card-pro mb-4">
+          <div class="card-pro-header d-flex justify-content-between align-items-center" style="background: var(--azul-claro); color: white;">
+            <h6 style="margin:0;"><i class="bi bi-info-circle-fill me-2"></i>Datos Generales</h6>
+          </div>
+          <div class="card-pro-body" style="background: #F8FAFC;">
+
+            <div id="vista-info">
+              <div style="margin-bottom: .8rem;">
+                <small style="color: var(--texto-suave); font-weight:600; text-transform:uppercase; font-size:.7rem;">Facultad</small>
+                <div style="font-weight:600; color: #1E293B; font-size:.9rem;">{{ perfil.facultad if perfil and perfil.facultad else 'No registrada' }}</div>
+              </div>
+              <div style="margin-bottom: .8rem;">
+                <small style="color: var(--texto-suave); font-weight:600; text-transform:uppercase; font-size:.7rem;">Departamento</small>
+                <div style="font-weight:600; color: #1E293B; font-size:.9rem;">{{ perfil.departamento if perfil and perfil.departamento else 'No registrado' }}</div>
+              </div>
+              <div style="margin-bottom: .8rem;">
+                <small style="color: var(--texto-suave); font-weight:600; text-transform:uppercase; font-size:.7rem;">Cargos de Responsabilidad</small>
+                <div style="font-weight:600; color: #1E293B; font-size:.9rem;">{{ perfil.responsabilidad if perfil and perfil.responsabilidad else 'Ninguna' }}</div>
+              </div>
+              <button type="button" class="btn-export w-100 mt-2" style="background: white; border: 1px solid var(--borde); color: var(--texto-suave); font-size: .8rem;" onclick="toggleEdit('info')">
+                <i class="bi bi-pencil-square me-1"></i> Editar Datos Generales
+              </button>
+            </div>
+
+            <div id="edit-info" style="display: none;">
+              <div class="mb-form">
+                <label class="form-label-pro" style="font-size: .75rem;">Facultad</label>
+                <input type="text" name="facultad" class="form-control-pro" value="{{ perfil.facultad if perfil and perfil.facultad else '' }}" placeholder="Ej. Humanidades y Artes">
+              </div>
+              <div class="mb-form">
+                <label class="form-label-pro" style="font-size: .75rem;">Departamento</label>
+                <input type="text" name="departamento" class="form-control-pro" value="{{ perfil.departamento if perfil and perfil.departamento else '' }}" placeholder="Ej. Letras">
+              </div>
+              
+              {% set resp_actual = perfil.responsabilidad if perfil and perfil.responsabilidad else 'Ninguna' %}
+              {% set es_otro = resp_actual not in responsabilidad_opts and resp_actual != '' %}
+              
+              <div class="mb-form">
+                <label class="form-label-pro" style="font-size: .75rem;">Responsabilidad</label>
+                <select name="responsabilidad" id="select_responsabilidad" class="form-control-pro" onchange="toggleOtraResponsabilidad()">
+                  {% for opt in responsabilidad_opts %}
+                    {% if opt != 'Otros' %}
+                      <option value="{{ opt }}" {% if resp_actual == opt %}selected{% endif %}>{{ opt }}</option>
+                    {% endif %}
+                  {% endfor %}
+                  <option value="Otros" {% if es_otro or resp_actual == 'Otros' %}selected{% endif %}>Otros</option>
+                </select>
+              </div>
+              
+              <div class="mb-form" id="div_otra_responsabilidad" style="display: {% if es_otro or resp_actual == 'Otros' %}block{% else %}none{% endif %}; margin-top: 0.8rem;">
+                <label class="form-label-pro" style="font-size: .75rem;">Especifique el cargo</label>
+                <input type="text" name="otra_responsabilidad" id="otra_responsabilidad" class="form-control-pro" value="{{ resp_actual if es_otro else '' }}" placeholder="Ej. Secretario Académico">
+              </div>
+
+              <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn-export" style="background: var(--exito); color: white; border: none; flex: 1; font-size: .8rem;"><i class="bi bi-save me-1"></i> Guardar</button>
+                <button type="button" class="btn-export" style="background: #E2E8F0; color: #475569; border: none; font-size: .8rem;" onclick="toggleEdit('info')">Cancelar</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+
+        <div class="card-pro mb-4">
+          <div class="card-pro-header d-flex justify-content-between align-items-center">
+            <h6 style="color: var(--azul-oscuro); margin:0; font-weight:700;"><i class="bi bi-mortarboard-fill me-2" style="color:var(--dorado)"></i>Grados Académicos y Titulaciones</h6>
+            <button type="button" class="btn-export" style="background: white; border: 1px solid var(--azul-claro); color: var(--azul-claro); font-size: .75rem;" data-bs-toggle="modal" data-bs-target="#modalNuevoTitulo">
+              <i class="bi bi-plus-lg me-1"></i> Agregar Título
+            </button>
+          </div>
+          <div class="card-pro-body">
+            
+            {% if titulos %}
+              <div class="row g-3">
+                {% for titulo in titulos %}
+                <div class="col-md-6">
+                  <div class="d-flex justify-content-between align-items-start p-3 h-100" style="background: #F8FAFC; border: 1px solid var(--borde); border-radius: 8px;">
+                    <div>
+                      <small style="color: #B45309; font-weight: 700; text-transform: uppercase; font-size: 0.65rem;">{{ titulo.nivel }}</small>
+                      <div style="font-weight: 600; color: var(--azul-oscuro); font-size: 0.9rem; margin-bottom: 0.5rem; line-height: 1.2;">{{ titulo.nombre_titulo }}</div>
+                      {% if titulo.url_archivo %}
+                        <a href="{{ titulo.url_archivo }}" target="_blank" class="badge bg-success text-white text-decoration-none" style="font-size: 0.7rem;"><i class="bi bi-patch-check-fill me-1"></i>Ver Documento</a>
+                      {% endif %}
+                    </div>
+                    
+                    <button type="button" class="btn-icon" style="background: #FFFBEB; color: #D97706; width: 28px; height: 28px; font-size: 0.8rem;" title="Editar Título" data-bs-toggle="modal" data-bs-target="#modalEditarTitulo{{ titulo.id }}">
+                      <i class="bi bi-pencil-fill"></i>
+                    </button>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <div class="text-center p-4 text-muted border rounded" style="background: #F8FAFC;">
+                <i class="bi bi-award" style="font-size: 2rem; color: #CBD5E1;"></i>
+                <p style="margin-top: 0.5rem; font-size: 0.85rem;">No has registrado títulos académicos.<br>Haz clic en "Agregar Título" para comenzar.</p>
+              </div>
+            {% endif %}
+
+          </div>
+        </div>
+
+        <div class="card-pro mb-4">
+          <div class="card-pro-header d-flex justify-content-between align-items-center">
+            <h6 style="color: var(--azul-oscuro); margin:0; font-weight:700;"><i class="bi bi-file-person-fill me-2" style="color:var(--azul-claro)"></i>Currículum Oficial</h6>
+          </div>
+          <div class="card-pro-body">
+            <div id="vista-cv">
+              {% if perfil and (perfil.curriculum or perfil.cv_url) %}
+                
+                {% if perfil.curriculum %}
+                <div style="font-size: .88rem; color: #475569; background: #F8FAFC; padding: 1.2rem; border-radius: 8px; border: 1px solid var(--borde); white-space: pre-wrap; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);">{{ perfil.curriculum }}</div>
+                {% endif %}
+                
+                {% if perfil.cv_url %}
+                <div class="mt-3 mb-3">
+                  <a href="{{ perfil.cv_url }}" target="_blank" class="btn-export" style="background: var(--exito); color: white; border: none; font-size: .8rem; text-decoration: none; padding: .4rem .8rem;"><i class="bi bi-file-earmark-pdf-fill me-1"></i> Ver CV Adjunto</a>
+                </div>
+                {% endif %}
+                
+                <button type="button" class="btn-export mt-2" style="background: white; border: 1px solid var(--borde); color: var(--texto-suave); font-size: .8rem;" onclick="toggleEdit('cv')"><i class="bi bi-pencil-square me-1"></i> Editar Currículum</button>
+              
+              {% else %}
+                <p class="text-muted" style="font-size: .85rem;">No has redactado tu currículum ni subido un archivo oficial.</p>
+                <button type="button" class="btn-export" style="background: white; border: 1px solid var(--azul-claro); color: var(--azul-claro); font-size: .8rem;" onclick="toggleEdit('cv')"><i class="bi bi-plus-circle me-1"></i> Agregar Currículum</button>
+              {% endif %}
+            </div>
+            
+            <div id="edit-cv" style="display: none;">
+              <textarea name="curriculum" class="form-control-pro" rows="4" placeholder="Redacta un breve resumen de tu trayectoria académica y profesional...">{{ perfil.curriculum if perfil and perfil.curriculum else '' }}</textarea>
+              <div class="mt-3 mb-form p-3" style="background: #F1F5F9; border-radius: 8px; border: 1px dashed var(--borde);">
+                <label class="form-label-pro" style="font-size: .8rem;"><i class="bi bi-upload me-1"></i> Adjuntar CV en PDF (Opcional)</label>
+                <input type="file" name="cv_file" class="form-control-pro" accept=".pdf,.png,.jpg" style="padding: .4rem; font-size: .8rem;">
+                {% if perfil and perfil.cv_url %}
+                <small class="text-muted d-block mt-2"><i class="bi bi-check-circle-fill text-success me-1"></i>Ya tienes un CV adjunto. Sube uno nuevo solo si deseas reemplazarlo.</small>
+                {% endif %}
+              </div>
+              <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn-export" style="background: var(--exito); color: white; border: none; font-size: .8rem;"><i class="bi bi-save me-1"></i> Guardar Cambios</button>
+                <button type="button" class="btn-export" style="background: #E2E8F0; color: #475569; border: none; font-size: .8rem;" onclick="toggleEdit('cv')">Cancelar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-pro mb-4">
+          <div class="card-pro-header d-flex justify-content-between align-items-center">
+            <h6 style="color: var(--azul-oscuro); margin:0; font-weight:700;"><i class="bi bi-globe2 me-2" style="color:#0284C7"></i>Redes Académicas y Profesionales</h6>
+          </div>
+          <div class="card-pro-body">
+            <div id="vista-redes">
+              {% if perfil and perfil.redes_sociales %}
+                <div style="font-size: .88rem; color: #475569; background: #F8FAFC; padding: 1.2rem; border-radius: 8px; border: 1px solid var(--borde); white-space: pre-wrap; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);">{{ perfil.redes_sociales }}</div>
+                <button type="button" class="btn-export mt-3" style="background: white; border: 1px solid var(--borde); color: var(--texto-suave); font-size: .8rem;" onclick="toggleEdit('redes')"><i class="bi bi-pencil-square me-1"></i> Editar Enlaces</button>
+              {% else %}
+                <p class="text-muted" style="font-size: .85rem;">Agrega enlaces a tu perfil de LinkedIn, ORCID, ResearchGate o Google Scholar.</p>
+                <button type="button" class="btn-export" style="background: white; border: 1px solid var(--azul-claro); color: var(--azul-claro); font-size: .8rem;" onclick="toggleEdit('redes')"><i class="bi bi-plus-circle me-1"></i> Agregar Enlaces</button>
+              {% endif %}
+            </div>
+            <div id="edit-redes" style="display: none;">
+              <textarea name="redes_sociales" class="form-control-pro" rows="4" placeholder="Ej. LinkedIn: https://linkedin.com/in/tu-perfil&#10;ORCID: https://orcid.org/0000-0000-0000-0000">{{ perfil.redes_sociales if perfil and perfil.redes_sociales else '' }}</textarea>
+              <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn-export" style="background: var(--exito); color: white; border: none; font-size: .8rem;"><i class="bi bi-save me-1"></i> Guardar Cambios</button>
+                <button type="button" class="btn-export" style="background: #E2E8F0; color: #475569; border: none; font-size: .8rem;" onclick="toggleEdit('redes')">Cancelar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-pro mb-4">
+          <div class="card-pro-header d-flex justify-content-between align-items-center">
+            <h6 style="color: var(--azul-oscuro); margin:0; font-weight:700;"><i class="bi bi-quote me-2" style="color:var(--dorado)"></i>Filosofía de Enseñanza</h6>
+          </div>
+          <div class="card-pro-body">
+            <div id="vista-filo">
+              {% if perfil and perfil.filosofia_ensenanza %}
+                <div style="font-size: .88rem; color: #475569; background: #F8FAFC; padding: 1.2rem; border-radius: 8px; border: 1px solid var(--borde); white-space: pre-wrap; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); border-left: 4px solid var(--dorado);">{{ perfil.filosofia_ensenanza }}</div>
+                <button type="button" class="btn-export mt-3" style="background: white; border: 1px solid var(--borde); color: var(--texto-suave); font-size: .8rem;" onclick="toggleEdit('filo')"><i class="bi bi-pencil-square me-1"></i> Editar Filosofía</button>
+              {% else %}
+                <p class="text-muted" style="font-size: .85rem;">¿Cuál es tu enfoque pedagógico?</p>
+                <button type="button" class="btn-export" style="background: white; border: 1px solid var(--azul-claro); color: var(--azul-claro); font-size: .8rem;" onclick="toggleEdit('filo')"><i class="bi bi-plus-circle me-1"></i> Agregar Filosofía</button>
+              {% endif %}
+            </div>
+            <div id="edit-filo" style="display: none;">
+              <textarea name="filosofia_ensenanza" class="form-control-pro" rows="4" placeholder="Describe brevemente tus principios pedagógicos y cómo abordas el aprendizaje de tus estudiantes...">{{ perfil.filosofia_ensenanza if perfil and perfil.filosofia_ensenanza else '' }}</textarea>
+              <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn-export" style="background: var(--exito); color: white; border: none; font-size: .8rem;"><i class="bi bi-save me-1"></i> Guardar Cambios</button>
+                <button type="button" class="btn-export" style="background: #E2E8F0; color: #475569; border: none; font-size: .8rem;" onclick="toggleEdit('filo')">Cancelar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-pro mb-4">
+          <div class="card-pro-header d-flex justify-content-between align-items-center">
+            <h6 style="color: var(--azul-oscuro); margin:0; font-weight:700;"><i class="bi bi-trophy-fill me-2" style="color:var(--exito)"></i>Premios y Reconocimientos</h6>
+          </div>
+          <div class="card-pro-body">
+            <div id="vista-premios">
+              {% if perfil and perfil.premios %}
+                <div style="font-size: .88rem; color: #475569; background: #F8FAFC; padding: 1.2rem; border-radius: 8px; border: 1px solid var(--borde); white-space: pre-wrap; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);">{{ perfil.premios }}</div>
+                <button type="button" class="btn-export mt-3" style="background: white; border: 1px solid var(--borde); color: var(--texto-suave); font-size: .8rem;" onclick="toggleEdit('premios')"><i class="bi bi-pencil-square me-1"></i> Editar Premios</button>
+              {% else %}
+                <p class="text-muted" style="font-size: .85rem;">Menciona galardones, reconocimientos de la UNAH o certificaciones especiales.</p>
+                <button type="button" class="btn-export" style="background: white; border: 1px solid var(--azul-claro); color: var(--azul-claro); font-size: .8rem;" onclick="toggleEdit('premios')"><i class="bi bi-plus-circle me-1"></i> Agregar Premios</button>
+              {% endif %}
+            </div>
+            <div id="edit-premios" style="display: none;">
+              <textarea name="premios" class="form-control-pro" rows="3" placeholder="Ej. Reconocimiento a la Excelencia Docente (2025)...">{{ perfil.premios if perfil and perfil.premios else '' }}</textarea>
+              <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn-export" style="background: var(--exito); color: white; border: none; font-size: .8rem;"><i class="bi bi-save me-1"></i> Guardar Cambios</button>
+                <button type="button" class="btn-export" style="background: #E2E8F0; color: #475569; border: none; font-size: .8rem;" onclick="toggleEdit('premios')">Cancelar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="modalPassword" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content border-0" style="border-radius: 12px; overflow: hidden;">
+      <div class="modal-header" style="background: var(--azul-oscuro); color: white; border: none;">
+        <h5 class="modal-title" style="font-weight: 600;"><i class="bi bi-shield-lock me-2"></i>Cambiar Contraseña</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form action="{{ url_for('cambiar_password') }}" method="POST">
+        <div class="modal-body p-4" style="background: #F8FAFC;">
+          <div class="mb-form">
+            <label class="form-label-pro">Contraseña Actual</label>
+            <input type="password" name="password_actual" class="form-control-pro bg-white" required>
+          </div>
+          <div class="mb-form">
+            <label class="form-label-pro">Nueva Contraseña (mín. 8 caracteres)</label>
+            <input type="password" name="nuevo_password" class="form-control-pro bg-white" minlength="8" required>
+          </div>
+          <div class="mb-form">
+            <label class="form-label-pro">Confirmar Nueva Contraseña</label>
+            <input type="password" name="confirmar_password" class="form-control-pro bg-white" minlength="8" required>
+          </div>
+        </div>
+        <div class="modal-footer" style="background: #F8FAFC; border-top: 1px solid var(--borde);">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn-primary-pro" style="width: auto; background-color: var(--exito);"><i class="bi bi-save me-1"></i>Actualizar Contraseña</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="modalNuevoTitulo" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content border-0" style="border-radius: 12px; overflow: hidden;">
+      <div class="modal-header" style="background: var(--dorado); color: var(--azul-oscuro); border: none;">
+        <h5 class="modal-title" style="font-weight: 800;"><i class="bi bi-mortarboard-fill me-2"></i>Agregar Título Académico</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form action="{{ url_for('agregar_titulo') }}" method="POST" enctype="multipart/form-data">
+        <div class="modal-body p-4" style="background: #F8FAFC;">
+          
+          <div class="mb-form">
+            <label class="form-label-pro">Nivel Académico</label>
+            <select name="nivel" class="form-control-pro bg-white" required>
+              <option value="" disabled selected>Seleccione...</option>
+              <option value="Licenciatura">Licenciatura / Pregrado</option>
+              <option value="Especialidad">Especialidad</option>
+              <option value="Maestría">Maestría</option>
+              <option value="Doctorado">Doctorado</option>
+              <option value="Postdoctorado">Postdoctorado</option>
+            </select>
+          </div>
+
+          <div class="mb-form">
+            <label class="form-label-pro">Nombre Exacto del Título</label>
+            <input type="text" name="nombre_titulo" class="form-control-pro bg-white" placeholder="Ej. Licenciatura en Pedagogía" required>
+          </div>
+
+          <div class="mb-form">
+            <label class="form-label-pro">Archivo Adjunto (Opcional, PDF o Imagen)</label>
+            <input type="file" name="titulo_file" class="form-control-pro bg-white" accept=".pdf,.png,.jpg,.jpeg" style="padding: 0.4rem;">
+            <small class="text-muted d-block mt-1">Escaneo o fotografía de tu diploma oficial.</small>
+          </div>
+
+        </div>
+        <div class="modal-footer" style="background: #F8FAFC; border-top: 1px solid var(--borde);">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn-primary-pro" style="width: auto;"><i class="bi bi-plus-circle me-1"></i> Guardar Título</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% for titulo in titulos %}
+<div class="modal fade" id="modalEditarTitulo{{ titulo.id }}" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content border-0" style="border-radius: 12px; overflow: hidden;">
+      <div class="modal-header" style="background: #FFFBEB; color: #92400E; border: none;">
+        <h5 class="modal-title" style="font-weight: 800;"><i class="bi bi-pencil-square me-2"></i>Editar Título Académico</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form action="{{ url_for('editar_titulo', titulo_id=titulo.id) }}" method="POST" enctype="multipart/form-data">
+        <div class="modal-body p-4" style="background: #F8FAFC;">
+          
+          <div class="mb-form">
+            <label class="form-label-pro">Nivel Académico</label>
+            <select name="nivel" class="form-control-pro bg-white" required>
+              <option value="Licenciatura" {% if titulo.nivel == 'Licenciatura' %}selected{% endif %}>Licenciatura / Pregrado</option>
+              <option value="Especialidad" {% if titulo.nivel == 'Especialidad' %}selected{% endif %}>Especialidad</option>
+              <option value="Maestría" {% if titulo.nivel == 'Maestría' %}selected{% endif %}>Maestría</option>
+              <option value="Doctorado" {% if titulo.nivel == 'Doctorado' %}selected{% endif %}>Doctorado</option>
+              <option value="Postdoctorado" {% if titulo.nivel == 'Postdoctorado' %}selected{% endif %}>Postdoctorado</option>
+            </select>
+          </div>
+
+          <div class="mb-form">
+            <label class="form-label-pro">Nombre Exacto del Título</label>
+            <input type="text" name="nombre_titulo" class="form-control-pro bg-white" value="{{ titulo.nombre_titulo }}" required>
+          </div>
+
+          <div class="mb-form">
+            <label class="form-label-pro">Actualizar Archivo Adjunto (Opcional)</label>
+            <input type="file" name="titulo_file" class="form-control-pro bg-white" accept=".pdf,.png,.jpg,.jpeg" style="padding: 0.4rem;">
+            {% if titulo.url_archivo %}
+            <small class="text-success d-block mt-2"><i class="bi bi-check-circle-fill me-1"></i>Ya existe un archivo guardado. Sube uno nuevo solo si quieres reemplazarlo.</small>
+            {% endif %}
+          </div>
+
+        </div>
+        <div class="modal-footer d-flex justify-content-between align-items-center" style="background: #F8FAFC; border-top: 1px solid var(--borde);">
+          
+          <a href="#" onclick="event.preventDefault(); if(confirm('¿Estás seguro de que deseas eliminar este título definitivamente?')) { document.getElementById('form-eliminar-{{ titulo.id }}').submit(); }" class="text-danger" style="font-size: 0.8rem; text-decoration: none; font-weight: 600;">
+            <i class="bi bi-trash-fill me-1"></i>Eliminar Título
+          </a>
+          
+          <div>
+            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn-primary-pro" style="width: auto;"><i class="bi bi-save me-1"></i> Guardar Cambios</button>
+          </div>
+        </div>
+      </form>
+      
+      <form id="form-eliminar-{{ titulo.id }}" action="{{ url_for('eliminar_titulo', titulo_id=titulo.id) }}" method="POST" style="display: none;"></form>
+
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+
+<script>
+  function toggleEdit(section) {
+    const vista = document.getElementById('vista-' + section);
+    const edit = document.getElementById('edit-' + section);
+    
+    if (vista.style.display === 'none') {
+      vista.style.display = 'block';
+      edit.style.display = 'none';
+    } else {
+      vista.style.display = 'none';
+      edit.style.display = 'block';
+    }
+  }
+
+  function toggleOtraResponsabilidad() {
+    const select = document.getElementById("select_responsabilidad");
+    const divOtro = document.getElementById("div_otra_responsabilidad");
+    const inputOtro = document.getElementById("otra_responsabilidad");
+    
+    if (select.value === "Otros") {
+      divOtro.style.display = "block";
+      inputOtro.required = true;
+    } else {
+      divOtro.style.display = "none";
+      inputOtro.required = false;
+    }
+  }
+</script>
+{% endblock %}
