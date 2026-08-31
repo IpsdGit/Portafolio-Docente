@@ -16,8 +16,8 @@ from firebase_admin import credentials, storage
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 app = Flask(__name__, 
-            template_folder=os.path.join(BASE_DIR, 'templates'), 
-            static_folder=os.path.join(BASE_DIR, 'static'))
+            template_folder=os.path.join(BASE_DIR, 'Buidl'), 
+            static_folder=os.path.join(BASE_DIR, 'Static'))
 
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'portafolio_unah_dev_2026_s3cr3t!')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024   # 16 MB máximo
