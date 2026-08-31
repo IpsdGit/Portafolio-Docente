@@ -105,10 +105,15 @@
           {% if clase.uv_ca %}<span>| <i class="bi bi-circle-fill me-1" style="font-size: 0.4rem; vertical-align: middle;"></i>{{ clase.uv_ca }} UV</span>{% endif %}
         </div>
       </div>
-      <div class="d-flex gap-2">
+      <div class="d-flex gap-2 flex-wrap">
         <button class="btn-export" style="background: white; border: 1px solid var(--borde); color: var(--texto-suave); font-weight: 600;" data-bs-toggle="modal" data-bs-target="#modalEditarClase">
           <i class="bi bi-pencil-square me-1"></i> Editar Clase
         </button>
+        <button type="button" class="btn-export" style="background: white; border: 1px solid #FECACA; color: #DC2626; font-weight: 600;"
+          onclick="if(confirm('⚠️ ¿Estás seguro de que deseas eliminar esta clase y TODAS sus evidencias? Esta acción no se puede deshacer.')) { document.getElementById('form-eliminar-clase-{{ clase.id }}').submit(); }">
+          <i class="bi bi-trash3-fill me-1"></i> Eliminar Clase
+        </button>
+        <form id="form-eliminar-clase-{{ clase.id }}" action="{{ url_for('eliminar_clase', clase_id=clase.id) }}" method="POST" style="display:none;"></form>
       </div>
     </div>
   </div>

@@ -1,0 +1,37 @@
+# ─── Credenciales y base de datos sensibles ───────────────────────────────────
+credenciales.json
+portafolio.db
+*.db
+*.sqlite3
+
+# ─── Entorno virtual Python ───────────────────────────────────────────────────
+venv/
+.venv/
+env/
+.env
+*.env
+
+# ─── Cache Python ─────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# ─── Flask / Werkzeug ─────────────────────────────────────────────────────────
+instance/
+.webassets-cache
+
+# ─── Sistema operativo ────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── IDEs ─────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ─── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+logs/
