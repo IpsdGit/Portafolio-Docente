@@ -108,7 +108,8 @@
                   </a>
                 </div>
                 <div class="d-flex align-items-center gap-2">
-                  <span class="badge bg-light text-dark border p-2" style="font-weight: 600;">{{ docente.total_docs }} Documentos</span>
+                  <span class="badge bg-light text-dark border p-2" style="font-weight: 600;"><i class="bi bi-award me-1"></i>{{ docente.total_docs }} Certificados</span>
+                  <span class="badge bg-light text-dark border p-2" style="font-weight: 600;"><i class="bi bi-journal-bookmark me-1"></i>{{ docente.clases|length }} Clases</span>
                   {% if docente.pendientes > 0 %}
                   <span class="badge bg-danger p-2" style="font-weight: 600; display:flex; align-items:center; gap:0.3rem;"><i class="bi bi-bell-fill"></i>{{ docente.pendientes }} Nuevos</span>
                   {% endif %}
@@ -118,45 +119,107 @@
           </h2>
           <div id="collapse{{ docente.usuario_id }}" class="accordion-collapse collapse {% if docente.pendientes > 0 %}show{% endif %}" aria-labelledby="heading{{ docente.usuario_id }}" data-bs-parent="#accordionDocentes">
             <div class="accordion-body p-0">
-              <div class="table-responsive">
-                <table class="table table-hover mb-0" style="font-size:0.85rem;">
-                  <thead style="background:#F8FAFC; color:var(--texto-suave);">
-                    <tr>
-                      <th style="padding-left:1.5rem;">Actividad</th>
-                      <th>Tipo / Institución</th>
-                      <th>Horas</th>
-                      <th>Estado</th>
-                      <th class="text-center" style="padding-right:1.5rem;">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {% for doc in docente.documentos %}
-                    <tr>
-                      <td style="padding-left:1.5rem;">
-                        <div style="font-weight:600; color:var(--azul-oscuro);">{{ doc.nombre_actividad }}</div>
-                        <small style="color:var(--texto-suave);">{{ doc.fecha_emision }}</small>
-                      </td>
-                      <td>
-                        <span class="badge bg-light text-dark border">{{ doc.tipo_formacion }}</span>
-                        <br><small class="text-muted"><i class="bi bi-building me-1"></i>{{ doc.institucion }}</small>
-                      </td>
-                      <td><strong>{{ doc.horas }}</strong></td>
-                      <td>
-                        <span class="badge-pro badge-{{ doc.estado|lower }}">{{ doc.estado }}</span>
-                      </td>
-                      <td class="text-center" style="white-space:nowrap; padding-right:1.5rem;">
-                        <a href="{{ doc.url_archivo }}" target="_blank" class="btn-icon azul" title="Ver Archivo">
-                          <i class="bi bi-eye-fill"></i>
-                        </a>
-                        <button class="btn-icon" style="background:var(--dorado); color:var(--azul-oscuro);" title="Evaluar" data-bs-toggle="modal" data-bs-target="#modalEvaluar{{ doc.id }}">
-                          <i class="bi bi-check2-circle"></i>
-                        </button>
-                      </td>
-                    </tr>
+              
+              <ul class="nav nav-tabs px-3 pt-3" id="tabs{{ docente.usuario_id }}" role="tablist" style="border-bottom: 2px solid #E2E8F0;">
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link active" id="cert-tab-{{ docente.usuario_id }}" data-bs-toggle="tab" data-bs-target="#cert-pane-{{ docente.usuario_id }}" type="button" role="tab" style="font-weight:600; font-size:0.85rem; color:var(--azul-oscuro);">
+                    <i class="bi bi-award-fill me-1" style="color:var(--dorado)"></i>Certificados
+                    {% if docente.total_docs > 0 %}<span class="badge bg-primary bg-opacity-10 text-primary ms-1" style="font-size:.7rem">{{ docente.total_docs }}</span>{% endif %}
+                  </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link" id="clases-tab-{{ docente.usuario_id }}" data-bs-toggle="tab" data-bs-target="#clases-pane-{{ docente.usuario_id }}" type="button" role="tab" style="font-weight:600; font-size:0.85rem; color:var(--azul-oscuro);">
+                    <i class="bi bi-journal-bookmark-fill me-1" style="color:var(--exito)"></i>Asignaturas
+                    {% if docente.clases|length > 0 %}<span class="badge bg-success bg-opacity-10 text-success ms-1" style="font-size:.7rem">{{ docente.clases|length }}</span>{% endif %}
+                  </button>
+                </li>
+              </ul>
+
+              <div class="tab-content">
+                <!-- TAB: Certificados -->
+                <div class="tab-pane fade show active" id="cert-pane-{{ docente.usuario_id }}" role="tabpanel">
+                  {% if docente.documentos %}
+                  <div class="table-responsive">
+                    <table class="table table-hover mb-0" style="font-size:0.85rem;">
+                      <thead style="background:#F8FAFC; color:var(--texto-suave);">
+                        <tr>
+                          <th style="padding-left:1.5rem;">Actividad</th>
+                          <th>Tipo / Institución</th>
+                          <th>Horas</th>
+                          <th>Estado</th>
+                          <th class="text-center" style="padding-right:1.5rem;">Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for doc in docente.documentos %}
+                        <tr>
+                          <td style="padding-left:1.5rem;">
+                            <div style="font-weight:600; color:var(--azul-oscuro);">{{ doc.nombre_actividad }}</div>
+                            <small style="color:var(--texto-suave);">{{ doc.fecha_emision }}</small>
+                          </td>
+                          <td>
+                            <span class="badge bg-light text-dark border">{{ doc.tipo_formacion }}</span>
+                            <br><small class="text-muted"><i class="bi bi-building me-1"></i>{{ doc.institucion }}</small>
+                          </td>
+                          <td><strong>{{ doc.horas }}</strong></td>
+                          <td>
+                            <span class="badge-pro badge-{{ doc.estado|lower }}">{{ doc.estado }}</span>
+                          </td>
+                          <td class="text-center" style="white-space:nowrap; padding-right:1.5rem;">
+                            <a href="{{ doc.url_archivo }}" target="_blank" class="btn-icon azul" title="Ver Archivo">
+                              <i class="bi bi-eye-fill"></i>
+                            </a>
+                            <button class="btn-icon" style="background:var(--dorado); color:var(--azul-oscuro);" title="Evaluar" data-bs-toggle="modal" data-bs-target="#modalEvaluar{{ doc.id }}">
+                              <i class="bi bi-check2-circle"></i>
+                            </button>
+                          </td>
+                        </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                  {% else %}
+                  <div class="text-center py-4 text-muted" style="font-size:.85rem;">
+                    <i class="bi bi-folder2-open d-block mb-1" style="font-size:1.5rem; color:#CBD5E1;"></i>
+                    No ha subido certificados aún.
+                  </div>
+                  {% endif %}
+                </div>
+
+                <!-- TAB: Asignaturas -->
+                <div class="tab-pane fade" id="clases-pane-{{ docente.usuario_id }}" role="tabpanel">
+                  {% if docente.clases %}
+                  <div class="row g-3 p-3">
+                    {% for clase in docente.clases %}
+                    <div class="col-md-6 col-xl-4">
+                      <div style="background:white; border:1px solid var(--borde); border-radius:10px; padding:1rem; border-left:4px solid var(--azul-claro); box-shadow: 0 1px 3px rgba(0,0,0,0.04); height:100%;">
+                        <h6 style="font-weight:700; color:var(--azul-oscuro); font-size:.9rem; margin-bottom:.5rem;">{{ clase.nombre_espacio }}</h6>
+                        <div style="font-size:.78rem; color:#64748B; margin-bottom:.6rem;">
+                          <div><i class="bi bi-calendar3 me-1"></i>{{ clase.periodo }}</div>
+                          {% if clase.codigo %}<div><i class="bi bi-hash me-1"></i>{{ clase.codigo }}</div>{% endif %}
+                          {% if clase.modalidad %}<div><i class="bi bi-laptop me-1"></i>{{ clase.modalidad }}</div>{% endif %}
+                        </div>
+                        <div class="d-flex gap-2 flex-wrap">
+                          <span class="badge bg-primary bg-opacity-10 text-primary border border-primary" style="font-size:.7rem;">
+                            <i class="bi bi-file-earmark-check me-1"></i>{{ clase.total_evidencias }} Evidencias
+                          </span>
+                          <span class="badge bg-success bg-opacity-10 text-success border border-success" style="font-size:.7rem;">
+                            <i class="bi bi-journal-text me-1"></i>{{ clase.total_reflexiones }} Reflexiones
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                     {% endfor %}
-                  </tbody>
-                </table>
+                  </div>
+                  {% else %}
+                  <div class="text-center py-4 text-muted" style="font-size:.85rem;">
+                    <i class="bi bi-journal-x d-block mb-1" style="font-size:1.5rem; color:#CBD5E1;"></i>
+                    No ha registrado asignaturas aún.
+                  </div>
+                  {% endif %}
+                </div>
               </div>
+
             </div>
           </div>
         </div>

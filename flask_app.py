@@ -623,7 +623,8 @@ def panel_admin():
                     'total_docs': 0,
                     'pendientes': 0,
                     'aprobados': 0,
-                    'documentos': []
+                    'documentos': [],
+                    'clases': []
                 }
             docentes_resumen[uid]['total_docs'] += 1
             if doc['estado'] == 'Pendiente':
@@ -631,7 +632,34 @@ def panel_admin():
             elif doc['estado'] == 'Aprobado':
                 docentes_resumen[uid]['aprobados'] += 1
             docentes_resumen[uid]['documentos'].append(doc)
-            
+
+        # Incluir docentes que no tienen documentos pero sí pueden tener clases
+        todos_docentes = con.execute("SELECT u.id, u.nombre, p.foto_url FROM Usuarios u LEFT JOIN PerfilDocente p ON u.id = p.usuario_id WHERE u.rol = 'Docente' ORDER BY u.nombre").fetchall()
+        for td in todos_docentes:
+            if td['id'] not in docentes_resumen:
+                if not filtro_docente or filtro_docente in td['nombre'].lower():
+                    docentes_resumen[td['id']] = {
+                        'usuario_id': td['id'],
+                        'nombre_docente': td['nombre'],
+                        'foto_url': td['foto_url'],
+                        'total_docs': 0,
+                        'pendientes': 0,
+                        'aprobados': 0,
+                        'documentos': [],
+                        'clases': []
+                    }
+
+        # Cargar clases para cada docente
+        for uid in docentes_resumen:
+            clases_db = con.execute("SELECT * FROM MisClases WHERE usuario_id = ? ORDER BY fecha_creacion DESC", (uid,)).fetchall()
+            clases_list = []
+            for c in clases_db:
+                cd = dict(c)
+                cd['total_evidencias'] = con.execute("SELECT COUNT(*) as cnt FROM EvidenciasClase WHERE clase_id = ?", (c['id'],)).fetchone()['cnt']
+                cd['total_reflexiones'] = con.execute("SELECT COUNT(*) as cnt FROM ReflexionesClase WHERE clase_id = ?", (c['id'],)).fetchone()['cnt']
+                clases_list.append(cd)
+            docentes_resumen[uid]['clases'] = clases_list
+
         docentes_agrupados = sorted(docentes_resumen.values(), key=lambda x: (-x['pendientes'], x['nombre_docente']))
         
         kpis = con.execute("SELECT (SELECT COUNT(DISTINCT id) FROM Usuarios WHERE rol = 'Docente') AS total_docentes, COUNT(*) AS total_docs, SUM(CASE WHEN estado='Pendiente' THEN 1 ELSE 0 END) AS pendientes, SUM(CASE WHEN estado='Aprobado' THEN 1 ELSE 0 END) AS aprobados, COALESCE(SUM(CASE WHEN estado='Aprobado' THEN horas ELSE 0 END), 0) AS horas_aprobadas FROM Documentos").fetchone()
