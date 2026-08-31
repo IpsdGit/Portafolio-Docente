@@ -604,7 +604,7 @@ def panel_admin():
     filtro_docente = request.args.get('docente', '').strip().lower()
     try:
         con = obtener_conexion()
-        query = "SELECT d.*, u.nombre AS nombre_docente, u.id AS usuario_id FROM Documentos d JOIN Usuarios u ON d.usuario_id = u.id"
+        query = "SELECT d.*, u.nombre AS nombre_docente, u.id AS usuario_id, p.foto_url FROM Documentos d JOIN Usuarios u ON d.usuario_id = u.id LEFT JOIN PerfilDocente p ON u.id = p.usuario_id"
         params, conds = [], []
         if filtro_estado != 'Todos': conds.append("d.estado = ?"); params.append(filtro_estado)
         if filtro_docente: conds.append("LOWER(u.nombre) LIKE ?"); params.append(f'%{filtro_docente}%')
@@ -619,6 +619,7 @@ def panel_admin():
                 docentes_resumen[uid] = {
                     'usuario_id': uid,
                     'nombre_docente': doc['nombre_docente'],
+                    'foto_url': doc['foto_url'],
                     'total_docs': 0,
                     'pendientes': 0,
                     'aprobados': 0,
