@@ -611,11 +611,32 @@ def panel_admin():
         if conds: query += " WHERE " + " AND ".join(conds)
         query += " ORDER BY d.id DESC"
         documentos = con.execute(query, params).fetchall()
+        
+        docentes_resumen = {}
+        for doc in documentos:
+            uid = doc['usuario_id']
+            if uid not in docentes_resumen:
+                docentes_resumen[uid] = {
+                    'usuario_id': uid,
+                    'nombre_docente': doc['nombre_docente'],
+                    'total_docs': 0,
+                    'pendientes': 0,
+                    'aprobados': 0,
+                    'documentos': []
+                }
+            docentes_resumen[uid]['total_docs'] += 1
+            if doc['estado'] == 'Pendiente':
+                docentes_resumen[uid]['pendientes'] += 1
+            elif doc['estado'] == 'Aprobado':
+                docentes_resumen[uid]['aprobados'] += 1
+            docentes_resumen[uid]['documentos'].append(doc)
+            
+        docentes_agrupados = sorted(docentes_resumen.values(), key=lambda x: (-x['pendientes'], x['nombre_docente']))
+        
         kpis = con.execute("SELECT (SELECT COUNT(DISTINCT id) FROM Usuarios WHERE rol = 'Docente') AS total_docentes, COUNT(*) AS total_docs, SUM(CASE WHEN estado='Pendiente' THEN 1 ELSE 0 END) AS pendientes, SUM(CASE WHEN estado='Aprobado' THEN 1 ELSE 0 END) AS aprobados, COALESCE(SUM(CASE WHEN estado='Aprobado' THEN horas ELSE 0 END), 0) AS horas_aprobadas FROM Documentos").fetchone()
-        docentes = con.execute("SELECT DISTINCT nombre FROM Usuarios WHERE rol='Docente' ORDER BY nombre").fetchall()
         con.close()
-    except: documentos, kpis, docentes = [], None, []
-    return render_template('panel_admin.html', nombre=session['nombre'], documentos=documentos, kpis=kpis, docentes=docentes, filtro_estado=filtro_estado, filtro_docente=filtro_docente)
+    except: documentos, kpis, docentes_agrupados = [], None, []
+    return render_template('panel_admin.html', nombre=session['nombre'], documentos=documentos, kpis=kpis, docentes_agrupados=docentes_agrupados, filtro_estado=filtro_estado, filtro_docente=filtro_docente)
 
 @app.route('/actualizar_estado/<int:doc_id>', methods=['POST'])
 def actualizar_estado(doc_id):
