@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Iniciar Sesión · Portafolio UNAH{% endblock %}
+
+{% block body %}
+<div class="container-fluid p-0" style="min-height: 100vh; background-color: #F8FAFC;">
+  <div class="row g-0" style="min-height: 100vh;">
+
+    <div class="col-md-6 d-none d-md-flex align-items-center justify-content-center p-5" style="background-color: var(--azul-oscuro); position: relative; overflow: hidden;">
+
+      <div style="position: absolute; font-size: 25rem; font-weight: 900; color: rgba(255,255,255,0.03); line-height: 1; pointer-events: none;">
+        UNAH
+      </div>
+
+      <div class="text-center fade-in-up" style="position: relative; z-index: 1; max-width: 450px;">
+        <img src="{{ url_for('static', filename='img/logo_unah.jpg') }}" alt="Logotipo UNAH" class="mb-4 img-fluid" style="max-height: 180px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.2));">
+
+        <h1 style="color: white; font-weight: 800; font-size: 2.8rem; letter-spacing: -1px; margin-bottom: 1rem; line-height: 1.1;">Portafolio Docente UNAH</h1>
+
+        <p style="color: rgba(255,255,255,0.85); font-size: 1.1rem; font-weight: 400; line-height: 1.6;">
+          Gestión integral de evidencias, certificados académicos y expedientes de los docentes de la Universidad Nacional Autónoma de Honduras.
+        </p>
+
+        <div class="mt-5" style="width: 60px; height: 4px; background-color: var(--dorado); margin: 0 auto; border-radius: 2px;"></div>
+      </div>
+    </div>
+
+    <div class="col-md-6 d-flex align-items-center justify-content-center p-4 p-md-5">
+      <div class="w-100 fade-in-up delay-1" style="max-width: 400px;">
+
+        <div class="text-center d-md-none mb-5">
+           <img src="{{ url_for('static', filename='img/logo_unah.jpg') }}" alt="Logotipo UNAH" class="mb-3" style="max-height: 80px;">
+           <h2 style="color: var(--azul-oscuro); font-weight: 800; margin: 0;">Portafolio Docente</h2>
+           <small class="text-muted">Sistema Institucional · UNAH</small>
+           <hr style="border-color: var(--borde); margin: 2rem 0 1rem 0;">
+        </div>
+
+        <div class="mb-4">
+          <h3 style="color: var(--azul-oscuro); font-weight: 700; margin-bottom: 0.2rem;">Iniciar Sesión</h3>
+          <p class="text-muted" style="font-size: 0.95rem;">Ingresa tus credenciales institucionales para acceder.</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% for category, message in messages %}
+            <div class="alert-pro {{ category }} mb-4" style="font-size: 0.85rem; padding: 0.8rem 1rem;">
+              {% if category == 'danger' %}<i class="bi bi-x-circle-fill me-2"></i>
+              {% elif category == 'success' %}<i class="bi bi-check-circle-fill me-2"></i>
+              {% else %}<i class="bi bi-info-circle-fill me-2"></i>{% endif %}
+              {{ message }}
+            </div>
+          {% endfor %}
+        {% endwith %}
+
+        <form action="{{ url_for('login') }}" method="POST">
+          <div class="mb-form">
+            <label class="form-label-pro" style="font-size: 0.8rem; color: #475569;">Correo Institucional</label>
+            <div class="input-group">
+                <span class="input-group-text bg-white border-end-0" style="border-color: var(--borde); color: #94A3B8;"><i class="bi bi-envelope"></i></span>
+                <input type="email" name="correo" class="form-control-pro bg-white border-start-0 ps-1" placeholder="Ej. juan.perez@unah.edu.hn" required autofocus>
+            </div>
+          </div>
+
+          <div class="mb-form">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <label class="form-label-pro" style="font-size: 0.8rem; color: #475569; margin: 0;">Contraseña</label>
+                </div>
+            <div class="input-group">
+                <span class="input-group-text bg-white border-end-0" style="border-color: var(--borde); color: #94A3B8;"><i class="bi bi-lock"></i></span>
+                <input type="password" name="password" class="form-control-pro bg-white border-start-0 ps-1" placeholder="••••••••" required>
+            </div>
+          </div>
+
+          <div class="pt-2">
+            <button type="submit" class="btn-primary-pro w-100" style="padding: 0.7rem; font-weight: 700; background-color: var(--azul-claro); border: none;">
+              <i class="bi bi-box-arrow-in-right me-2"></i>Entrar al Sistema
+            </button>
+          </div>
+        </form>
+
+        <div class="text-center mt-5 pt-3" style="border-top: 1px solid var(--borde);">
+          <p class="text-muted" style="font-size: 0.9rem; margin-bottom: 0.3rem;">¿Aún no tienes cuenta docente?</p>
+          <a href="{{ url_for('registro') }}" style="color: var(--azul-claro); font-weight: 600; text-decoration: none; font-size: 0.95rem;">
+             <i class="bi bi-person-plus me-1"></i>Regístrate aquí
+          </a>
+        </div>
+
+        <div class="text-center mt-5 text-muted" style="font-size: 0.7rem;">
+            © {{ now.year if now else '2026' }} Universidad Nacional Autónoma de Honduras<br>
+            Desarrollo Interno · VICERRECTORÍA ACADÉMICA
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+    body, html {
+        height: 100%;
+        overflow-x: hidden;
+    }
+    /* Ajuste para los input groups del estilo PRO */
+    .input-group .form-control-pro:focus {
+        border-color: var(--borde) !important;
+        box-shadow: none !important;
+    }
+</style>
+{% endblock %}

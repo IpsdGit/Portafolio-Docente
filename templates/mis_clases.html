@@ -1,0 +1,367 @@
+{% extends "base.html" %}
+{% block title %}Mis Clases Overview{% endblock %}
+
+{% block body %}
+<nav class="navbar-institucional d-flex align-items-center justify-content-between">
+  <div>
+    <div class="brand-text"><i class="bi bi-mortarboard-fill me-2"></i>Portafolio Docente</div>
+    <div class="brand-sub">Sistema Institucional · UNAH</div>
+  </div>
+  <div class="d-flex align-items-center">
+    
+    <div class="dropdown me-4">
+      <div class="position-relative d-flex align-items-center" style="cursor: pointer;" data-bs-toggle="dropdown" aria-expanded="false" title="Notificaciones">
+        <i class="bi bi-bell-fill" style="font-size: 1.3rem; color: #94A3B8; transition: color 0.2s;" onmouseover="this.style.color='white'" onmouseout="this.style.color='#94A3B8'"></i>
+        {% if total_notificaciones > 0 %}
+        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light" style="font-size: 0.65rem; padding: 0.25em 0.45em;">
+          {{ total_notificaciones }}
+        </span>
+        {% endif %}
+      </div>
+      <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="width: 320px; max-height: 400px; overflow-y: auto; border-radius: 12px; margin-top: 10px;">
+        <li class="px-3 py-2 border-bottom">
+          <strong style="color: var(--azul-oscuro); font-size: 0.9rem;">Notificaciones ({{ total_notificaciones }})</strong>
+        </li>
+        {% if total_notificaciones > 0 %}
+          {% for notif in notificaciones_detalle %}
+          <li>
+            <a class="dropdown-item py-3 border-bottom" href="{{ url_for('detalle_clase', clase_id=notif.clase_id) }}#evidencia-{{ notif.ev_id }}" style="white-space: normal; transition: background 0.2s;" onmouseover="this.style.backgroundColor='#F8FAFC'" onmouseout="this.style.backgroundColor='white'">
+              <div class="d-flex align-items-start gap-2">
+                <div style="background: #FEF2F2; color: #DC2626; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                  <i class="bi bi-chat-dots-fill"></i>
+                </div>
+                <div>
+                  <div style="font-size: 0.8rem; font-weight: 700; color: var(--azul-oscuro); line-height: 1.2; margin-bottom: 0.2rem;">Feedback en {{ notif.nombre_espacio }}</div>
+                  <div style="font-size: 0.75rem; color: #475569; margin-bottom: 0.2rem;"><strong>{{ notif.tipo_evidencia }}:</strong> "{{ notif.comentario_admin[:40] }}..."</div>
+                </div>
+              </div>
+            </a>
+          </li>
+          {% endfor %}
+        {% else %}
+          <li class="px-3 py-4 text-center text-muted">
+            <i class="bi bi-bell-slash" style="font-size: 2rem; color: #CBD5E1;"></i>
+            <p style="font-size: 0.85rem; margin-top: 0.5rem; margin-bottom: 0;">No tienes nuevas notificaciones.</p>
+          </li>
+        {% endif %}
+      </ul>
+    </div>
+
+    <div style="text-align:right;">
+      <div class="nav-user fw-bold" style="color: white; font-size: 0.95rem;">{{ nombre }}</div>
+      <div class="brand-sub">Docente</div>
+    </div>
+    <div style="width:38px;height:38px;border-radius:50%;background:var(--dorado);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--azul-oscuro);font-size:1rem; margin-left: 0.5rem;">
+      {{ nombre[0]|upper }}
+    </div>
+    <a href="{{ url_for('logout') }}" class="btn-logout" style="margin-left: 0.8rem;"><i class="bi bi-box-arrow-right me-1"></i>Salir</a>
+  </div>
+</nav>
+
+<div style="background-color: var(--azul-oscuro); padding: 0 2rem; border-top: 1px solid rgba(255,255,255,0.05); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 1.5rem;">
+  <div class="d-flex gap-4">
+    <a href="{{ url_for('ver_perfil') }}" style="text-decoration: none; padding: 0.8rem 0.5rem; font-weight: 600; font-size: 0.95rem; transition: 0.2s; color: #94A3B8; border-bottom: 3px solid transparent;" onmouseover="this.style.color='white'" onmouseout="this.style.color='#94A3B8'">
+      <i class="bi bi-person-fill me-2"></i>Mi Perfil
+    </a>
+    <a href="{{ url_for('inicio_docente') }}" style="text-decoration: none; padding: 0.8rem 0.5rem; font-weight: 600; font-size: 0.95rem; transition: 0.2s; color: #94A3B8; border-bottom: 3px solid transparent;" onmouseover="this.style.color='white'" onmouseout="this.style.color='#94A3B8'">
+      <i class="bi bi-patch-check-fill me-2"></i>Certificados
+    </a>
+    <a href="{{ url_for('mis_clases') }}" style="text-decoration: none; padding: 0.8rem 0.5rem; font-weight: 600; font-size: 0.95rem; transition: 0.2s; color: var(--dorado); border-bottom: 3px solid var(--dorado);">
+      <i class="bi bi-folder-fill me-2"></i>Mis Clases
+    </a>
+  </div>
+</div>
+
+<div class="main-content pt-0">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="alert-pro {{ category }} fade-in-up">
+        {% if category == 'danger' %}<i class="bi bi-x-circle-fill"></i>
+        {% elif category == 'success' %}<i class="bi bi-check-circle-fill"></i>
+        {% else %}<i class="bi bi-info-circle-fill"></i>{% endif %}
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="d-flex justify-content-between align-items-center mb-4 fade-in-up">
+    <div>
+      <h3 style="color: var(--azul-oscuro); font-weight: 800; margin-bottom: 0.2rem;"><i class="bi bi-folder2-open me-2" style="color:var(--dorado);"></i>Mis Clases Overview</h3>
+      <p class="text-muted" style="font-size: 0.9rem; margin: 0;">Gestiona y audita tus espacios de aprendizaje académico.</p>
+    </div>
+    <button class="btn-primary-pro" data-bs-toggle="modal" data-bs-target="#modalNuevaClase" style="width: auto; padding: 0.5rem 1.2rem; font-size: 0.9rem;">
+      <i class="bi bi-plus-lg me-1"></i> Nueva Clase
+    </button>
+  </div>
+
+  {% if clases %}
+  <div class="mb-4 fade-in-up delay-1 d-flex flex-wrap align-items-center justify-content-between gap-3" style="background: transparent;">
+    
+    <div class="position-relative" style="width: 100%; max-width: 400px;">
+      <i class="bi bi-search text-muted position-absolute" style="left: 16px; top: 50%; transform: translateY(-50%);"></i>
+      <input type="text" id="buscadorClases" class="form-control-pro bg-white w-100" placeholder="Buscar por asignatura o código..." onkeyup="filtrarClases()" style="border: 1px solid #E2E8F0; border-radius: 25px; padding: 0.5rem 1rem 0.5rem 2.5rem; font-size: 0.85rem; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+      <label for="filtroAnio" class="text-muted" style="font-size: 0.8rem; font-weight: 600;"><i class="bi bi-funnel-fill me-1"></i>Año Académico:</label>
+      <select id="filtroAnio" class="form-control-pro bg-white" onchange="filtrarClases()" style="border: 1px solid #E2E8F0; border-radius: 8px; padding: 0.4rem 0.8rem; min-width: 100px; font-size: 0.85rem; font-weight: 600; color: var(--azul-oscuro); box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+        <option value="Todos">Todos</option>
+      </select>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="row g-3" id="contenedor-clases">
+    {% for clase in clases %}
+    
+    {% set porcentaje = (clase.tipos_completados / total_tipos * 100) | round if total_tipos > 0 else 0 %}
+    {% if porcentaje >= 80 %}
+      {% set color_progreso = '#22C55E' %} {% set texto_progreso = 'Alto' %}
+    {% elif porcentaje >= 40 %}
+      {% set color_progreso = '#F59E0B' %} {% set texto_progreso = 'Medio' %}
+    {% else %}
+      {% set color_progreso = '#EF4444' %} {% set texto_progreso = 'Bajo' %}
+    {% endif %}
+    
+    <div class="col-md-6 col-lg-4 col-xl-3 fade-in-up delay-1 clase-item" data-nombre="{{ clase.nombre_espacio }}" data-codigo="{{ clase.codigo or '' }}" data-periodo="{{ clase.periodo }}">
+      <a href="{{ url_for('detalle_clase', clase_id=clase.id) }}" style="text-decoration: none; color: inherit; display: block;">
+        
+        <div class="card-pro" style="background: white; border-radius: 10px; border: 1px solid #E2E8F0; border-top: 4px solid var(--azul-claro); position: relative; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.03); transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 12px -3px rgba(0,0,0,0.08)';" onmouseout="this.style.transform='none'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.03)';">
+          
+          {% if clase.notificaciones_nuevas > 0 %}
+          <div class="position-absolute" style="top: 8px; right: 8px; z-index: 10;">
+            <div style="background: #FEF2F2; border: 1px solid #FECACA; border-radius: 12px; padding: 0.2rem 0.5rem; display: flex; align-items: center; gap: 0.3rem;">
+              <div style="background: #DC2626; color: white; border-radius: 50%; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; font-size: 0.55rem; position: relative;">
+                <i class="bi bi-bell-fill"></i>
+              </div>
+              <span style="font-size: 0.65rem; font-weight: 700; color: #991B1B;">Nuevo</span>
+            </div>
+          </div>
+          {% endif %}
+
+          <div style="position: absolute; right: -5px; bottom: -10px; font-size: 6rem; font-weight: 800; color: #F8FAFC; line-height: 1; z-index: 0; pointer-events: none; user-select: none;">
+            {{ clase.nombre_espacio[0]|upper }}
+          </div>
+
+          <div style="padding: 1rem; position: relative; z-index: 1;">
+            
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <div style="font-size: 1.5rem; color: #FBBF24; line-height: 1;"><i class="bi bi-folder-fill"></i></div>
+              <div style="flex: 1; min-width: 0; padding-right: 50px;">
+                <h6 style="color: var(--azul-oscuro); font-weight: 800; margin: 0; font-size: 0.9rem; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;" title="{{ clase.nombre_espacio }}">{{ clase.nombre_espacio }}</h6>
+                <div style="color: #64748B; font-size: 0.7rem; font-weight: 600; margin-top: 0.1rem;"># {{ clase.codigo or 'S/C' }}</div>
+              </div>
+            </div>
+            
+            <div class="mb-3">
+              <span style="display: inline-block; padding: 0.2rem 0.5rem; border-radius: 4px; background: #F0F9FF; border: 1px solid #BAE6FD; color: #0284C7; font-size: 0.7rem; font-weight: 700;">
+                <i class="bi bi-calendar3 me-1"></i>{{ clase.periodo }}
+              </span>
+            </div>
+
+            <div class="w-100 mb-2">
+              <div class="d-flex align-items-center justify-content-between mb-1">
+                <span style="font-size: 0.7rem; color: #64748B; font-weight: 600;">Progreso: <span style="color: {{ color_progreso }}; font-weight: 800;">{{ texto_progreso }}</span></span>
+                <span style="font-size: 0.85rem; font-weight: 800; color: {{ color_progreso }}; text-align: right;">{{ porcentaje | int }}%</span>
+              </div>
+              <div class="progress" style="height: 8px; border-radius: 4px; background-color: #F1F5F9; border: 1px solid #E2E8F0;">
+                <div class="progress-bar" role="progressbar" style="width: {{ porcentaje }}%; background-color: {{ color_progreso }}; border-radius: 4px;"></div>
+              </div>
+            </div>
+            
+            <div style="margin-top: 0.8rem; border-top: 1px dashed #E2E8F0; padding-top: 0.6rem;">
+              <span style="font-size: 0.75rem; font-weight: 600; color: #64748B;">
+                <i class="bi bi-folder2 me-1"></i>{{ clase.total_evidencias }} archivos
+              </span>
+            </div>
+
+          </div>
+        </div>
+      </a>
+    </div>
+    {% endfor %}
+
+    <div class="col-12" id="mensaje-vacio-filtro" style="display: none;">
+      <div style="text-align:center; padding:3rem 2rem; color:var(--texto-suave); background: white; border-radius: 12px; border: 1px dashed var(--borde);">
+        <div style="font-size:2.5rem; margin-bottom:1rem; color: #CBD5E1;"><i class="bi bi-search"></i></div>
+        <p style="font-weight:600; margin-bottom:.3rem;">No se encontraron asignaturas</p>
+        <p style="font-size:.85rem;">Prueba cambiando el año o los términos de búsqueda.</p>
+      </div>
+    </div>
+
+    {% if not clases %}
+    <div class="col-12 fade-in-up delay-1">
+      <div style="text-align:center; padding:4rem 2rem; color:var(--texto-suave); background: white; border-radius: 12px; border: 1px dashed var(--borde);">
+        <div style="font-size:3rem; margin-bottom:1rem; color: #CBD5E1;"><i class="bi bi-folder-x"></i></div>
+        <p style="font-weight:600; margin-bottom:.3rem;">No tienes asignaturas creadas</p>
+        <p style="font-size:.85rem;">Haz clic en el botón "Nueva Clase" para empezar a organizar tus evidencias.</p>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="mt-5 pt-4 text-center border-top fade-in-up delay-2">
+    <p style="color: #94A3B8; font-size: 0.85rem; font-weight: 600;">© <span id="currentYear"></span> Universidad Nacional Autónoma de Honduras</p>
+  </div>
+
+</div>
+
+<div class="modal fade" id="modalNuevaClase" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content border-0" style="border-radius: 12px; overflow: hidden;">
+      <div class="modal-header" style="background: var(--azul-oscuro); color: white; border: none;">
+        <h5 class="modal-title" style="font-weight: 600;"><i class="bi bi-plus-circle me-2"></i>Registrar Nueva Clase</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form action="{{ url_for('nueva_clase') }}" method="POST">
+        <div class="modal-body p-4" style="background: #F8FAFC;">
+          <div class="row g-3">
+            
+            <div class="col-md-6">
+              <label class="form-label-pro">Período Académico</label>
+              <select name="periodo_tipo" class="form-control-pro bg-white" required>
+                <option value="" disabled selected>Seleccione...</option>
+                <option value="Primer Trimestre">Primer Trimestre</option>
+                <option value="Segundo Trimestre">Segundo Trimestre</option>
+                <option value="Tercer Trimestre">Tercer Trimestre</option>
+                <option value="Primer Semestre">Primer Semestre</option>
+                <option value="Segundo Semestre">Segundo Semestre</option>
+              </select>
+            </div>
+            
+            <div class="col-md-6">
+              <label class="form-label-pro">Año</label>
+              <select name="periodo_anio" id="select_anio_nueva" class="form-control-pro bg-white" required>
+                <option value="" disabled selected>Año...</option>
+              </select>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label-pro">Nombre del Espacio de Aprendizaje</label>
+              <input type="text" name="nombre_espacio" class="form-control-pro bg-white" placeholder="Ej. Español General" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label-pro">Código</label>
+              <input type="text" name="codigo" class="form-control-pro bg-white" placeholder="Ej. EG-011">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label-pro">UV / CA</label>
+              <input type="number" name="uv_ca" class="form-control-pro bg-white" placeholder="Ej. 4">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label-pro">Modalidad</label>
+              <select name="modalidad" class="form-control-pro bg-white" required>
+                <option value="" disabled selected>Seleccione...</option>
+                <option value="Presencial">Presencial</option>
+                <option value="Virtual">Virtual</option>
+                <option value="B-learning">B-learning</option>
+                <option value="Teledocencia">Teledocencia</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label-pro">Naturaleza</label>
+              <select name="naturaleza" class="form-control-pro bg-white">
+                <option value="" disabled selected>Seleccione...</option>
+                <option value="Teórica">Teórica</option>
+                <option value="Práctica">Práctica</option>
+                <option value="Mixta">Mixta</option>
+                <option value="Laboratorio">Laboratorio</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer" style="background: #F8FAFC; border-top: 1px solid var(--borde);">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn-primary-pro" style="width: auto;"><i class="bi bi-save me-1"></i>Crear Carpeta</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Año actual en el footer
+  document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+  // Llenar el select de años hasta el año actual para nueva clase
+  const selectAnioNueva = document.getElementById('select_anio_nueva');
+  if(selectAnioNueva) {
+    const anioActualSistema = new Date().getFullYear();
+    for(let y = anioActualSistema; y >= 2020; y--) {
+      let opt = document.createElement('option');
+      opt.value = y;
+      opt.textContent = y;
+      selectAnioNueva.appendChild(opt);
+    }
+  }
+
+  // Lógica de Filtros y Búsqueda
+  document.addEventListener('DOMContentLoaded', function() {
+    const tarjetas = document.querySelectorAll('.clase-item');
+    const aniosSet = new Set();
+    const selectAnio = document.getElementById('filtroAnio');
+
+    if(!selectAnio) return;
+
+    tarjetas.forEach(tarjeta => {
+      const periodo = tarjeta.getAttribute('data-periodo');
+      const match = periodo.match(/\b(20\d{2})\b/); 
+      
+      if (match) {
+        const anio = match[0];
+        tarjeta.setAttribute('data-anio', anio);
+        aniosSet.add(anio);
+      } else {
+        tarjeta.setAttribute('data-anio', 'Sin Año Específico');
+        aniosSet.add('Sin Año Específico');
+      }
+    });
+
+    const aniosArray = Array.from(aniosSet).sort().reverse();
+    aniosArray.forEach(anio => {
+      const option = document.createElement('option');
+      option.value = anio;
+      option.textContent = anio;
+      selectAnio.appendChild(option);
+    });
+
+    const anioActual = new Date().getFullYear().toString();
+    if(aniosSet.has(anioActual)) {
+      selectAnio.value = anioActual;
+    }
+
+    filtrarClases();
+  });
+
+  function filtrarClases() {
+    const textoBusqueda = document.getElementById('buscadorClases').value.toLowerCase();
+    const anioFiltro = document.getElementById('filtroAnio').value;
+    const tarjetas = document.querySelectorAll('.clase-item');
+    let visibles = 0;
+
+    tarjetas.forEach(tarjeta => {
+      const nombre = (tarjeta.getAttribute('data-nombre') || '').toLowerCase();
+      const codigo = (tarjeta.getAttribute('data-codigo') || '').toLowerCase();
+      const periodo = (tarjeta.getAttribute('data-periodo') || '').toLowerCase();
+      const anio = tarjeta.getAttribute('data-anio');
+
+      const coincideTexto = nombre.includes(textoBusqueda) || codigo.includes(textoBusqueda) || periodo.includes(textoBusqueda);
+      const coincideAnio = (anioFiltro === 'Todos') || (anio === anioFiltro);
+
+      if (coincideTexto && coincideAnio) {
+        tarjeta.style.display = 'block';
+        visibles++;
+      } else {
+        tarjeta.style.display = 'none';
+      }
+    });
+
+    const mensajeVacio = document.getElementById('mensaje-vacio-filtro');
+    if (visibles === 0 && tarjetas.length > 0) {
+      mensajeVacio.style.display = 'block';
+    } else {
+      mensajeVacio.style.display = 'none';
+    }
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+{% block title %}Panel Administrador{% endblock %}
+
+{% block body %}
+<nav class="navbar-institucional d-flex align-items-center justify-content-between">
+  <div>
+    <div class="brand-text"><i class="bi bi-shield-lock-fill me-2"></i>Panel Administrador</div>
+    <div class="brand-sub">Control de Portafolios · UNAH</div>
+  </div>
+  <div class="d-flex align-items-center gap-3">
+    <div style="text-align:right;">
+      <div class="nav-user fw-bold" style="color: white; font-size: 0.95rem;">{{ nombre }}</div>
+    </div>
+    <div style="width:38px;height:38px;border-radius:50%;background:var(--dorado);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--azul-oscuro);font-size:1rem;">
+      {{ nombre[0]|upper }}
+    </div>
+    <a href="{{ url_for('logout') }}" class="btn-logout" style="margin-left: 0.5rem;"><i class="bi bi-box-arrow-right me-1"></i>Salir</a>
+  </div>
+</nav>
+
+<div class="main-content">
+  {% if kpis %}
+  <div class="kpi-grid fade-in-up mb-4">
+    <div class="kpi-card" style="--kpi-color:#2563EB">
+      <div class="kpi-icon">👥</div>
+      <div class="kpi-info"><h3>{{ kpis.total_docentes }}</h3><p>Docentes</p></div>
+    </div>
+    <div class="kpi-card" style="--kpi-color:#16A34A">
+      <div class="kpi-icon">✅</div>
+      <div class="kpi-info"><h3>{{ kpis.aprobados }}</h3><p>Docs Aprobados</p></div>
+    </div>
+    <div class="kpi-card" style="--kpi-color:#D97706">
+      <div class="kpi-icon">⏳</div>
+      <div class="kpi-info"><h3>{{ kpis.pendientes }}</h3><p>Pendientes</p></div>
+    </div>
+    <div class="kpi-card" style="--kpi-color:#7C3AED">
+      <div class="kpi-icon">🕐</div>
+      <div class="kpi-info"><h3>{{ kpis.horas_aprobadas }}<span style="font-size:1rem;font-weight:500"> h</span></h3><p>Horas Validadas</p></div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="row g-4 mb-4 fade-in-up delay-1">
+    <div class="col-lg-5">
+      <div class="card-pro h-100">
+        <div class="card-pro-header">
+          <h6 style="margin:0; font-weight: 700; color: var(--azul-oscuro);"><i class="bi bi-pie-chart-fill me-2" style="color: var(--dorado);"></i>Horas por Tipo de Formación</h6>
+        </div>
+        <div class="card-pro-body" style="height: 300px; position: relative;">
+          <canvas id="chartTipos"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-7">
+      <div class="card-pro h-100">
+        <div class="card-pro-header">
+          <h6 style="margin:0; font-weight: 700; color: var(--azul-oscuro);"><i class="bi bi-bar-chart-fill me-2" style="color: var(--exito);"></i>Top 10 Docentes (Horas Validadas)</h6>
+        </div>
+        <div class="card-pro-body" style="height: 300px; position: relative;">
+          <canvas id="chartDocentes"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-pro fade-in-up delay-2">
+    <div class="card-pro-header d-flex justify-content-between align-items-center">
+      <h5 style="margin:0;"><i class="bi bi-file-earmark-text-fill me-2" style="color:var(--azul-claro)"></i>Documentos Registrados</h5>
+      <a href="{{ url_for('exportar_csv') }}" class="btn-export"><i class="bi bi-filetype-csv me-1"></i> Exportar CSV</a>
+    </div>
+    
+    <div class="card-pro-body" style="background:#F8FAFC; border-bottom:1px solid var(--borde);">
+      <form method="GET" action="{{ url_for('panel_admin') }}" class="d-flex gap-3 align-items-end">
+        <div>
+          <label class="form-label-pro" style="font-size:0.75rem;">Filtrar por Estado</label>
+          <select name="estado" class="form-control-pro" style="padding:0.3rem 0.5rem; font-size:0.85rem; width:150px;">
+            <option value="Todos" {% if filtro_estado == 'Todos' %}selected{% endif %}>Todos</option>
+            <option value="Pendiente" {% if filtro_estado == 'Pendiente' %}selected{% endif %}>Pendientes</option>
+            <option value="Aprobado" {% if filtro_estado == 'Aprobado' %}selected{% endif %}>Aprobados</option>
+            <option value="Rechazado" {% if filtro_estado == 'Rechazado' %}selected{% endif %}>Rechazados</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label-pro" style="font-size:0.75rem;">Buscar Docente</label>
+          <input type="text" name="docente" value="{{ filtro_docente }}" class="form-control-pro" placeholder="Nombre..." style="padding:0.3rem 0.5rem; font-size:0.85rem; width:200px;">
+        </div>
+        <button type="submit" class="btn-primary-pro" style="padding:0.3rem 1rem; font-size:0.85rem;">Aplicar</button>
+      </form>
+    </div>
+
+    <div class="card-pro-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover" style="margin:0; font-size:0.85rem;">
+          <thead style="background:#F1F5F9; color:var(--azul-oscuro);">
+            <tr>
+              <th style="padding:1rem;">Docente</th>
+              <th>Actividad</th>
+              <th>Tipo / Institución</th>
+              <th>Horas</th>
+              <th>Estado</th>
+              <th class="text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for doc in documentos %}
+            <tr>
+              <td class="fw-bold" style="padding:1rem; white-space:nowrap; display: flex; align-items: center; gap: 0.5rem;">
+                {{ doc.nombre_docente }}
+                <a href="{{ url_for('expediente_docente', docente_id=doc.usuario_id) }}" class="btn-icon azul" style="width:22px; height:22px; font-size:.7rem; text-decoration:none;" title="Ver Expediente Completo">
+                  <i class="bi bi-person-vcard"></i>
+                </a>
+              </td>
+              <td>
+                <div style="font-weight:600; color:var(--azul-oscuro);">{{ doc.nombre_actividad }}</div>
+                <small style="color:var(--texto-suave);">{{ doc.fecha_emision }}</small>
+              </td>
+              <td>
+                <span class="badge bg-light text-dark border">{{ doc.tipo_formacion }}</span>
+                <br><small class="text-muted"><i class="bi bi-building me-1"></i>{{ doc.institucion }}</small>
+              </td>
+              <td><strong>{{ doc.horas }}</strong></td>
+              <td>
+                <span class="badge-pro badge-{{ doc.estado|lower }}">{{ doc.estado }}</span>
+              </td>
+              <td class="text-center" style="white-space:nowrap;">
+                <a href="{{ doc.url_archivo }}" target="_blank" class="btn-icon azul" title="Ver Archivo">
+                  <i class="bi bi-eye-fill"></i>
+                </a>
+                <button class="btn-icon" style="background:var(--dorado); color:var(--azul-oscuro);" title="Evaluar" data-bs-toggle="modal" data-bs-target="#modalEvaluar{{ doc.id }}">
+                  <i class="bi bi-check2-circle"></i>
+                </button>
+              </td>
+            </tr>
+            {% endfor %}
+            {% if not documentos %}
+            <tr><td colspan="6" class="text-center py-4 text-muted">No se encontraron documentos registrados.</td></tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  {% for doc in documentos %}
+  <div class="modal fade" id="modalEvaluar{{ doc.id }}" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content border-0" style="border-radius: 12px; overflow: hidden;">
+        <div class="modal-header" style="background:var(--azul-oscuro); color:white; border:none;">
+          <h5 class="modal-title" style="color:white; font-weight: 600;"><i class="bi bi-clipboard-check me-2"></i>Evaluar Documento</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <form action="{{ url_for('actualizar_estado', doc_id=doc.id) }}" method="POST">
+          <div class="modal-body p-4" style="background: #F8FAFC;">
+            
+            <div style="background: white; border: 1px solid var(--borde); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+                <p style="margin: 0; font-size: 0.9rem;"><strong>Docente:</strong> {{ doc.nombre_docente }}<br>
+                <strong>Actividad:</strong> <span style="color: var(--azul-oscuro); font-weight: 600;">{{ doc.nombre_actividad }}</span></p>
+            </div>
+
+            <div class="mb-form">
+              <label class="form-label-pro">Estado de la Validación</label>
+              <select name="estado" class="form-control-pro bg-white" required>
+                <option value="Pendiente" {% if doc.estado == 'Pendiente' %}selected{% endif %}>⏳ Pendiente</option>
+                <option value="Aprobado" {% if doc.estado == 'Aprobado' %}selected{% endif %}>✅ Aprobado</option>
+                <option value="Rechazado" {% if doc.estado == 'Rechazado' %}selected{% endif %}>❌ Rechazado</option>
+              </select>
+            </div>
+            <div class="mb-form">
+              <label class="form-label-pro">Observaciones (Opcional)</label>
+              <textarea name="comentario" class="form-control-pro bg-white" rows="3" placeholder="Ej. El documento no coincide con las horas...">{{ doc.comentario_admin or '' }}</textarea>
+            </div>
+          </div>
+          <div class="modal-footer" style="background: #F8FAFC; border-top: 1px solid var(--borde);">
+            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn-primary-pro" style="width:auto;"><i class="bi bi-save-fill me-1"></i> Guardar Evaluación</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Llamar a nuestra API interna en Flask
+    fetch("{{ url_for('estadisticas_json') }}")
+      .then(response => response.json())
+      .then(data => {
+        
+        // 1. Gráfico de Tipos de Formación (Dona)
+        if(data.por_tipo && data.por_tipo.length > 0) {
+            const ctxTipos = document.getElementById('chartTipos').getContext('2d');
+            new Chart(ctxTipos, {
+              type: 'doughnut',
+              data: {
+                labels: data.por_tipo.map(item => item.tipo_formacion),
+                datasets: [{
+                  data: data.por_tipo.map(item => item.total_horas),
+                  // Paleta de colores atractiva
+                  backgroundColor: ['#FBBF24', '#38BDF8', '#10B981', '#818CF8', '#F472B6', '#A78BFA'],
+                  borderWidth: 2,
+                  borderColor: '#ffffff'
+                }]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: { position: 'right', labels: { boxWidth: 12, font: {size: 11} } }
+                },
+                cutout: '65%' // Hace la dona más delgada
+              }
+            });
+        } else {
+            document.getElementById('chartTipos').parentElement.innerHTML = '<div class="d-flex h-100 align-items-center justify-content-center text-muted">Aún no hay horas aprobadas.</div>';
+        }
+
+        // 2. Gráfico de Top Docentes (Barras Horizontales)
+        if(data.por_docente && data.por_docente.length > 0) {
+            const ctxDocentes = document.getElementById('chartDocentes').getContext('2d');
+            new Chart(ctxDocentes, {
+              type: 'bar',
+              data: {
+                labels: data.por_docente.map(item => item.nombre),
+                datasets: [{
+                  label: 'Horas Validadas',
+                  data: data.por_docente.map(item => item.horas),
+                  backgroundColor: '#0284C7', // Azul UNAH claro
+                  borderRadius: 4,
+                  barThickness: 20
+                }]
+              },
+              options: {
+                indexAxis: 'y', // Lo convierte en gráfico de barras horizontales
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: { display: false } // Ocultamos la leyenda
+                },
+                scales: {
+                  x: { grid: { display: false }, beginAtZero: true },
+                  y: { grid: { display: false }, ticks: { font: {size: 11} } }
+                }
+              }
+            });
+        } else {
+            document.getElementById('chartDocentes').parentElement.innerHTML = '<div class="d-flex h-100 align-items-center justify-content-center text-muted">Aún no hay docentes con horas aprobadas.</div>';
+        }
+      })
+      .catch(error => console.error("Error cargando estadísticas:", error));
+  });
+</script>
+{% endblock %}
