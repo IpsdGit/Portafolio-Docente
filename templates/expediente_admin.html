@@ -22,7 +22,9 @@
     <button onclick="generarPDF()" class="btn-export" style="background: white; color: var(--azul-oscuro); border: none; font-size: 0.85rem; font-weight: 700; padding: 0.4rem 1rem; margin-right: 1rem;">
       <i class="bi bi-filetype-pdf me-1" style="color: #DC2626; font-size: 1.1rem;"></i> Descargar PDF
     </button>
-    <a href="{{ url_for('panel_admin') }}" style="color: white; font-weight: 500; text-decoration: none; font-size: 0.9rem;"><i class="bi bi-arrow-left me-1"></i>Volver al Panel</a>
+    <a href="{{ url_for('panel_admin') }}" class="btn-export" style="background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.4); font-size: 0.85rem; font-weight: 700; padding: 0.4rem 1.2rem; text-decoration: none; backdrop-filter: blur(4px); transition: all 0.2s ease;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">
+      <i class="bi bi-arrow-left-circle-fill me-1" style="font-size: 1.1rem;"></i> Volver al Panel
+    </a>
   </div>
 </nav>
 
