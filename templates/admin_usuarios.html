@@ -1,0 +1,391 @@
+{% extends "base.html" %}
+{% block title %}Gestión de Usuarios · Admin{% endblock %}
+
+{% block body %}
+<nav class="navbar-institucional d-flex align-items-center justify-content-between">
+  <div>
+    <div class="brand-text"><i class="bi bi-mortarboard-fill me-2"></i>Portafolio Docente</div>
+    <div class="brand-sub">Panel de Administración · UNAH</div>
+  </div>
+  <div class="d-flex align-items-center">
+    <div style="text-align:right;">
+      <div class="nav-user fw-bold" style="color: white; font-size: 0.95rem;">{{ nombre }}</div>
+      <div class="brand-sub">Administrador</div>
+    </div>
+    <div style="width:38px;height:38px;border-radius:50%;background:var(--dorado);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--azul-oscuro);font-size:1rem; margin-left: 0.5rem;">
+      {{ nombre[0]|upper }}
+    </div>
+    <a href="{{ url_for('logout') }}" class="btn-logout" style="margin-left: 0.8rem;"><i class="bi bi-box-arrow-right me-1"></i>Salir</a>
+  </div>
+</nav>
+
+<!-- Sub-nav admin -->
+<div style="background-color: var(--azul-oscuro); padding: 0 2rem; border-top: 1px solid rgba(255,255,255,0.05); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 1.5rem;">
+  <div class="d-flex gap-4">
+    <a href="{{ url_for('panel_admin') }}" style="text-decoration: none; padding: 0.8rem 0.5rem; font-weight: 600; font-size: 0.95rem; color: #94A3B8; border-bottom: 3px solid transparent;" onmouseover="this.style.color='white'" onmouseout="this.style.color='#94A3B8'">
+      <i class="bi bi-speedometer2 me-2"></i>Panel Principal
+    </a>
+    <a href="{{ url_for('admin_usuarios') }}" style="text-decoration: none; padding: 0.8rem 0.5rem; font-weight: 600; font-size: 0.95rem; color: var(--dorado); border-bottom: 3px solid var(--dorado);">
+      <i class="bi bi-people-fill me-2"></i>Gestión de Usuarios
+    </a>
+  </div>
+</div>
+
+<div class="main-content pt-0">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="alert-pro {{ category }} fade-in-up">
+        {% if category == 'danger' %}<i class="bi bi-x-circle-fill"></i>
+        {% elif category == 'success' %}<i class="bi bi-check-circle-fill"></i>
+        {% elif category == 'warning' %}<i class="bi bi-exclamation-triangle-fill"></i>
+        {% else %}<i class="bi bi-info-circle-fill"></i>{% endif %}
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endwith %}
+
+  <!-- Header con KPIs -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 style="color: var(--azul-oscuro); font-weight: 800; margin-bottom: 0.2rem;">
+        <i class="bi bi-people-fill me-2" style="color: var(--dorado);"></i>Gestión de Usuarios
+      </h3>
+      <p class="text-muted" style="font-size: 0.9rem; margin: 0;">Administra docentes y administradores del sistema</p>
+    </div>
+    <button class="btn-primary-pro" data-bs-toggle="modal" data-bs-target="#modalCrearAdmin" style="width: auto;">
+      <i class="bi bi-person-plus-fill me-2"></i>Nuevo Administrador
+    </button>
+  </div>
+
+  <!-- KPIs rápidos -->
+  <div class="kpi-grid fade-in-up delay-1 mb-4" style="grid-template-columns: repeat(3, 1fr);">
+    <div class="kpi-card" style="--kpi-color:#2563EB">
+      <div class="kpi-icon">👥</div>
+      <div class="kpi-info"><h3>{{ docentes|length }}</h3><p>Docentes Registrados</p></div>
+    </div>
+    <div class="kpi-card" style="--kpi-color:#D97706">
+      <div class="kpi-icon">🛡️</div>
+      <div class="kpi-info"><h3>{{ admins|length }}</h3><p>Administradores</p></div>
+    </div>
+    <div class="kpi-card" style="--kpi-color:#16A34A">
+      <div class="kpi-icon">✅</div>
+      <div class="kpi-info"><h3>{{ docentes|selectattr('activo', 'equalto', 1)|list|length }}</h3><p>Cuentas Activas</p></div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <ul class="nav nav-tabs mb-0" id="userTabs" style="border-bottom: 2px solid var(--borde);">
+    <li class="nav-item">
+      <a class="nav-link active" id="tab-docentes" data-bs-toggle="tab" href="#panelDocentes"
+         style="font-weight: 600; color: var(--azul-oscuro); border: none; border-bottom: 3px solid var(--azul-claro); background: white; border-radius: 8px 8px 0 0;">
+        <i class="bi bi-person-lines-fill me-2"></i>Docentes
+        <span class="badge rounded-pill ms-1" style="background: #EFF6FF; color: #2563EB; font-size: 0.7rem;">{{ docentes|length }}</span>
+      </a>
+    </li>
+    <li class="nav-item ms-2">
+      <a class="nav-link" id="tab-admins" data-bs-toggle="tab" href="#panelAdmins"
+         style="font-weight: 600; color: #64748B; border: none; border-bottom: 3px solid transparent; border-radius: 8px 8px 0 0;">
+        <i class="bi bi-shield-fill-check me-2"></i>Administradores
+        <span class="badge rounded-pill ms-1" style="background: #FFFBEB; color: #B45309; font-size: 0.7rem;">{{ admins|length }}</span>
+      </a>
+    </li>
+  </ul>
+
+  <div class="tab-content">
+
+    <!-- ─── TAB: DOCENTES ─── -->
+    <div class="tab-pane fade show active" id="panelDocentes">
+      <div class="card-pro" style="border-radius: 0 12px 12px 12px;">
+        <div class="card-pro-body p-0">
+          {% if docentes %}
+          <div class="table-responsive">
+            <table class="table table-hover" style="margin: 0; font-size: 0.875rem;">
+              <thead style="background: #F1F5F9; color: var(--azul-oscuro);">
+                <tr>
+                  <th style="padding: 1rem 1.2rem;">Docente</th>
+                  <th>Correo</th>
+                  <th class="text-center">Certs.</th>
+                  <th class="text-center">Aprobados</th>
+                  <th class="text-center">Estado</th>
+                  <th class="text-center">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for d in docentes %}
+                <tr style="transition: background 0.15s;">
+                  <td style="padding: 0.9rem 1.2rem;">
+                    <div class="d-flex align-items-center gap-3">
+                      <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--azul-claro); color: white; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.9rem; flex-shrink: 0;">
+                        {{ d.nombre[0]|upper }}
+                      </div>
+                      <div>
+                        <div style="font-weight: 700; color: var(--azul-oscuro);">{{ d.nombre }}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td style="color: #475569;">{{ d.correo }}</td>
+                  <td class="text-center"><strong>{{ d.total_certs }}</strong></td>
+                  <td class="text-center">
+                    <span style="color: #16A34A; font-weight: 700;">{{ d.certs_aprobados }}</span>
+                  </td>
+                  <td class="text-center">
+                    {% if d.activo %}
+                      <span style="display:inline-flex; align-items:center; gap:0.3rem; background:#DCFCE7; color:#166534; border:1px solid #86EFAC; border-radius:20px; padding:0.25rem 0.8rem; font-size:0.75rem; font-weight:700;">
+                        <span style="width:6px;height:6px;border-radius:50%;background:#16A34A;display:inline-block;"></span>Activo
+                      </span>
+                    {% else %}
+                      <span style="display:inline-flex; align-items:center; gap:0.3rem; background:#FEE2E2; color:#991B1B; border:1px solid #FCA5A5; border-radius:20px; padding:0.25rem 0.8rem; font-size:0.75rem; font-weight:700;">
+                        <span style="width:6px;height:6px;border-radius:50%;background:#DC2626;display:inline-block;"></span>Inactivo
+                      </span>
+                    {% endif %}
+                  </td>
+                  <td class="text-center">
+                    <div class="d-flex gap-2 justify-content-center">
+                      <!-- Ver Expediente -->
+                      <a href="{{ url_for('expediente_docente', docente_id=d.id) }}"
+                         class="btn-icon azul" title="Ver Expediente" style="width:30px; height:30px; font-size:0.8rem;">
+                        <i class="bi bi-folder2-open"></i>
+                      </a>
+                      <!-- Promover a Admin -->
+                      <button type="button"
+                        class="btn-icon"
+                        style="background:#FFFBEB; color:#D97706; width:30px; height:30px; font-size:0.8rem;"
+                        title="Promover a Administrador"
+                        onclick="confirmarCambioRol({{ d.id }}, '{{ d.nombre }}', 'Administrador')">
+                        <i class="bi bi-arrow-up-circle-fill"></i>
+                      </button>
+                      <!-- Activar/Desactivar -->
+                      <form action="{{ url_for('toggle_activo_usuario', uid=d.id) }}" method="POST" style="display:inline;">
+                        <button type="submit" class="btn-icon"
+                          style="background: {% if d.activo %}#FEF2F2{% else %}#F0FDF4{% endif %}; color: {% if d.activo %}#DC2626{% else %}#16A34A{% endif %}; width:30px; height:30px; font-size:0.8rem;"
+                          title="{{ 'Desactivar cuenta' if d.activo else 'Activar cuenta' }}"
+                          onclick="return confirm('¿{{ 'Desactivar' if d.activo else 'Activar' }} la cuenta de {{ d.nombre }}?')">
+                          <i class="bi bi-{% if d.activo %}toggle-on{% else %}toggle-off{% endif %}"></i>
+                        </button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center py-5 text-muted">
+            <i class="bi bi-person-x" style="font-size: 3rem; color: #CBD5E1;"></i>
+            <p class="mt-2">No hay docentes registrados aún.</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── TAB: ADMINISTRADORES ─── -->
+    <div class="tab-pane fade" id="panelAdmins">
+      <div class="card-pro" style="border-radius: 0 12px 12px 12px;">
+        <div class="card-pro-body p-0">
+          {% if admins %}
+          <div class="table-responsive">
+            <table class="table table-hover" style="margin: 0; font-size: 0.875rem;">
+              <thead style="background: #FFFBEB; color: #92400E;">
+                <tr>
+                  <th style="padding: 1rem 1.2rem;">Administrador</th>
+                  <th>Correo</th>
+                  <th class="text-center">Estado</th>
+                  <th class="text-center">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for a in admins %}
+                <tr>
+                  <td style="padding: 0.9rem 1.2rem;">
+                    <div class="d-flex align-items-center gap-3">
+                      <div style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #B45309, #D97706); color: white; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.9rem; flex-shrink: 0;">
+                        {{ a.nombre[0]|upper }}
+                      </div>
+                      <div>
+                        <div style="font-weight: 700; color: var(--azul-oscuro);">{{ a.nombre }}</div>
+                        <small style="color: #B45309; font-size: 0.7rem; font-weight: 600;"><i class="bi bi-shield-fill-check me-1"></i>Administrador</small>
+                      </div>
+                    </div>
+                  </td>
+                  <td style="color: #475569;">{{ a.correo }}</td>
+                  <td class="text-center">
+                    {% if a.activo %}
+                      <span style="display:inline-flex; align-items:center; gap:0.3rem; background:#DCFCE7; color:#166534; border:1px solid #86EFAC; border-radius:20px; padding:0.25rem 0.8rem; font-size:0.75rem; font-weight:700;">
+                        <span style="width:6px;height:6px;border-radius:50%;background:#16A34A;display:inline-block;"></span>Activo
+                      </span>
+                    {% else %}
+                      <span style="display:inline-flex; align-items:center; gap:0.3rem; background:#FEE2E2; color:#991B1B; border:1px solid #FCA5A5; border-radius:20px; padding:0.25rem 0.8rem; font-size:0.75rem; font-weight:700;">
+                        <span style="width:6px;height:6px;border-radius:50%;background:#DC2626;display:inline-block;"></span>Inactivo
+                      </span>
+                    {% endif %}
+                  </td>
+                  <td class="text-center">
+                    <button type="button"
+                      class="btn-icon"
+                      style="background:#FEE2E2; color:#DC2626; width:30px; height:30px; font-size:0.8rem;"
+                      title="Revocar rol de Administrador (pasar a Docente)"
+                      onclick="confirmarCambioRol({{ a.id }}, '{{ a.nombre }}', 'Docente')">
+                      <i class="bi bi-arrow-down-circle-fill"></i>
+                    </button>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="text-center py-4 text-muted">
+            <p>No hay otros administradores registrados.</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+  </div>{# /tab-content #}
+</div>
+
+<!-- ─── MODAL: Crear nuevo Administrador ─── -->
+<div class="modal fade" id="modalCrearAdmin" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0" style="border-radius: 16px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.15);">
+      <div class="modal-header border-0" style="background: linear-gradient(135deg, #B45309 0%, #D97706 100%); padding: 1.5rem 1.8rem;">
+        <div class="d-flex align-items-center gap-3">
+          <div style="width: 44px; height: 44px; background: rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+            <i class="bi bi-person-plus-fill" style="font-size: 1.2rem; color: white;"></i>
+          </div>
+          <div>
+            <h5 class="modal-title mb-0" style="color: white; font-weight: 800;">Crear Administrador</h5>
+            <small style="color: rgba(255,255,255,0.8);">Agregar un nuevo usuario con rol de admin</small>
+          </div>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form action="{{ url_for('crear_admin') }}" method="POST">
+        <div class="modal-body p-4" style="background: #F8FAFC;">
+
+          <!-- Opción A: Promover docente existente -->
+          {% if todos_docentes %}
+          <div class="mb-4 p-3 rounded-3" style="background: #EFF6FF; border: 1px solid #BFDBFE;">
+            <div style="font-size: 0.8rem; font-weight: 700; color: #1E40AF; margin-bottom: 0.6rem;">
+              <i class="bi bi-arrow-up-circle-fill me-1"></i>Opción Rápida: Promover Docente Existente
+            </div>
+            <div class="d-flex gap-2">
+              <select id="select-promover" class="form-control-pro bg-white" style="font-size: 0.85rem; flex: 1;">
+                <option value="">— Seleccionar docente —</option>
+                {% for d in todos_docentes %}
+                <option value="{{ d.id }}" data-nombre="{{ d.nombre }}">{{ d.nombre }} · {{ d.correo }}</option>
+                {% endfor %}
+              </select>
+              <button type="button"
+                class="btn-export"
+                style="background: var(--azul-claro); color: white; border: none; white-space: nowrap; font-size: 0.8rem;"
+                onclick="promoverDocente()">
+                <i class="bi bi-arrow-up-circle me-1"></i>Promover
+              </button>
+            </div>
+          </div>
+
+          <div class="d-flex align-items-center gap-3 mb-4">
+            <div style="height: 1px; flex: 1; background: var(--borde);"></div>
+            <span style="color: var(--texto-suave); font-size: 0.75rem; font-weight: 600; text-transform: uppercase;">O crear uno nuevo</span>
+            <div style="height: 1px; flex: 1; background: var(--borde);"></div>
+          </div>
+          {% endif %}
+
+          <div class="mb-form">
+            <label class="form-label-pro">Nombre Completo</label>
+            <input type="text" name="nombre" class="form-control-pro bg-white"
+                   placeholder="Ej. María López Sánchez" minlength="3" required>
+          </div>
+          <div class="mb-form">
+            <label class="form-label-pro">Correo Electrónico</label>
+            <input type="email" name="correo" class="form-control-pro bg-white"
+                   placeholder="Ej. admin@unah.edu.hn" required>
+          </div>
+          <div class="mb-form">
+            <label class="form-label-pro">Contraseña (mín. 8 caracteres)</label>
+            <input type="password" name="password" class="form-control-pro bg-white"
+                   minlength="8" required>
+          </div>
+        </div>
+        <div class="modal-footer border-0 px-4 py-3" style="background: #F8FAFC;">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn-primary-pro" style="width: auto; background: linear-gradient(135deg, #B45309, #D97706);">
+            <i class="bi bi-person-plus-fill me-1"></i>Crear Administrador
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ─── MODAL: Confirmar cambio de rol ─── -->
+<div class="modal fade" id="modalCambiarRol" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content border-0" style="border-radius: 16px; overflow: hidden;">
+      <div class="modal-header border-0" style="background: #FEF3C7; padding: 1.2rem 1.5rem;">
+        <h6 class="modal-title mb-0" style="color: #92400E; font-weight: 800;">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>Confirmar Cambio de Rol
+        </h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4" style="background: #FFFBEB;">
+        <p id="texto-confirmacion" style="color: #1E293B; font-size: 0.9rem; margin: 0;"></p>
+      </div>
+      <form id="form-cambiar-rol" method="POST">
+        <input type="hidden" name="nuevo_rol" id="input-nuevo-rol">
+        <div class="modal-footer border-0 px-4 py-3" style="background: #FFFBEB;">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn-primary-pro" id="btn-confirmar-rol" style="width: auto;"></button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Confirmar cambio de rol dinámico
+  function confirmarCambioRol(uid, nombre, nuevoRol) {
+    const textoEl = document.getElementById('texto-confirmacion');
+    const formEl = document.getElementById('form-cambiar-rol');
+    const btnEl = document.getElementById('btn-confirmar-rol');
+    const inputRol = document.getElementById('input-nuevo-rol');
+
+    inputRol.value = nuevoRol;
+    formEl.action = `/admin/usuarios/${uid}/cambiar_rol`;
+
+    if (nuevoRol === 'Administrador') {
+      textoEl.innerHTML = `¿Deseas <strong>promover a ${nombre}</strong> al rol de <strong>Administrador</strong>? Tendrá acceso completo al panel administrativo.`;
+      btnEl.innerHTML = '<i class="bi bi-arrow-up-circle-fill me-1"></i>Promover';
+      btnEl.style.background = 'linear-gradient(135deg, #B45309, #D97706)';
+    } else {
+      textoEl.innerHTML = `¿Deseas <strong>revocar el rol de ${nombre}</strong>? Pasará a ser <strong>Docente</strong> y perderá acceso al panel de administración.`;
+      btnEl.innerHTML = '<i class="bi bi-arrow-down-circle-fill me-1"></i>Revocar Rol';
+      btnEl.style.background = 'linear-gradient(135deg, #DC2626, #EF4444)';
+    }
+
+    new bootstrap.Modal(document.getElementById('modalCambiarRol')).show();
+  }
+
+  // Promover docente seleccionado desde el dropdown
+  function promoverDocente() {
+    const sel = document.getElementById('select-promover');
+    if (!sel.value) {
+      alert('Por favor selecciona un docente para promover.');
+      return;
+    }
+    const nombre = sel.options[sel.selectedIndex].dataset.nombre;
+    confirmarCambioRol(sel.value, nombre, 'Administrador');
+  }
+
+  // Activar tab correcto si viene de hash
+  document.addEventListener('DOMContentLoaded', function() {
+    if (window.location.hash === '#admins') {
+      document.getElementById('tab-admins').click();
+    }
+  });
+</script>
+{% endblock %}

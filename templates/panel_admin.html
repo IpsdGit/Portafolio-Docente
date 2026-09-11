@@ -18,6 +18,18 @@
   </div>
 </nav>
 
+<!-- Sub-nav administrador -->
+<div style="background-color: var(--azul-oscuro); padding: 0 2rem; border-top: 1px solid rgba(255,255,255,0.05); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 0;">
+  <div class="d-flex gap-4">
+    <a href="{{ url_for('panel_admin') }}" style="text-decoration: none; padding: 0.8rem 0.5rem; font-weight: 600; font-size: 0.95rem; color: var(--dorado); border-bottom: 3px solid var(--dorado);">
+      <i class="bi bi-speedometer2 me-2"></i>Panel Principal
+    </a>
+    <a href="{{ url_for('admin_usuarios') }}" style="text-decoration: none; padding: 0.8rem 0.5rem; font-weight: 600; font-size: 0.95rem; color: #94A3B8; border-bottom: 3px solid transparent;" onmouseover="this.style.color='white'" onmouseout="this.style.color='#94A3B8'">
+      <i class="bi bi-people-fill me-2"></i>Gestión de Usuarios
+    </a>
+  </div>
+</div>
+
 <div class="main-content">
   {% if kpis %}
   <div class="kpi-grid fade-in-up mb-4">

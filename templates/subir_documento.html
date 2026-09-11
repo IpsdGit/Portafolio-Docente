@@ -127,6 +127,7 @@
               <th>Horas</th>
               <th>Estado</th>
               <th class="text-center">Archivo</th>
+              <th class="text-center">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -142,7 +143,15 @@
               <td>
                 <span class="badge-pro badge-{{ doc.estado|lower }}">{{ doc.estado }}</span>
                 {% if doc.comentario_admin %}
-                <i class="bi bi-chat-dots-fill text-muted ms-1" title="Comentario del admin: {{ doc.comentario_admin }}"></i>
+                <!-- MEJORA 2: ícono clickeable que abre modal de comentario -->
+                <button type="button"
+                  class="btn-comentario-admin ms-1"
+                  onclick="abrirComentario('{{ doc.nombre_actividad|replace("'","\\'")|replace('"', '&quot;') }}', '{{ doc.estado }}', `{{ doc.comentario_admin|replace('`','\\`') }}`)"
+                  title="Ver comentario del administrador"
+                  style="background: none; border: none; padding: 0; cursor: pointer; vertical-align: middle;">
+                  <i class="bi bi-chat-dots-fill" style="color: #6B7280; font-size: 1rem; transition: color 0.2s;"
+                     onmouseover="this.style.color='#2563EB'" onmouseout="this.style.color='#6B7280'"></i>
+                </button>
                 {% endif %}
               </td>
               <td class="text-center">
@@ -150,10 +159,21 @@
                   <i class="bi bi-eye-fill"></i>
                 </a>
               </td>
+              <!-- MEJORA 1: Botón Editar -->
+              <td class="text-center">
+                <button type="button"
+                  class="btn-icon"
+                  style="background:#FFFBEB; color:#D97706; width:30px; height:30px; font-size:0.8rem;"
+                  title="Editar Certificado"
+                  data-bs-toggle="modal"
+                  data-bs-target="#modalEditar{{ doc.id }}">
+                  <i class="bi bi-pencil-fill"></i>
+                </button>
+              </td>
             </tr>
             {% endfor %}
             {% if not documentos %}
-            <tr><td colspan="6" class="text-center py-4 text-muted">Aún no has subido ningún certificado.</td></tr>
+            <tr><td colspan="7" class="text-center py-4 text-muted">Aún no has subido ningún certificado.</td></tr>
             {% endif %}
           </tbody>
         </table>
@@ -162,6 +182,7 @@
   </div>
 </div>
 
+<!-- ─── MODAL: Subir nuevo certificado ─── -->
 <div class="modal fade" id="modalSubir" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content border-0" style="border-radius: 12px; overflow: hidden;">
@@ -218,7 +239,160 @@
   </div>
 </div>
 
+<!-- ─── MODALES: Editar certificado (uno por documento) ─── -->
+{% for doc in documentos %}
+<div class="modal fade" id="modalEditar{{ doc.id }}" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content border-0" style="border-radius: 14px; overflow: hidden;">
+      <div class="modal-header" style="background: linear-gradient(135deg, #B45309, #D97706); color: white; border: none;">
+        <h5 class="modal-title" style="font-weight: 700;">
+          <i class="bi bi-pencil-square me-2"></i>Editar Certificado
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form action="{{ url_for('editar_certificado', doc_id=doc.id) }}" method="POST" enctype="multipart/form-data">
+        <div class="modal-body p-4" style="background: #F8FAFC;">
+
+          <!-- Estado actual (info) -->
+          <div class="mb-3 p-3 rounded-3" style="background: #F1F5F9; border: 1px solid var(--borde);">
+            <small style="color: var(--texto-suave); font-weight: 600; font-size: 0.75rem; text-transform: uppercase;">Estado actual</small>
+            <div class="mt-1">
+              <span class="badge-pro badge-{{ doc.estado|lower }}">{{ doc.estado }}</span>
+              {% if doc.comentario_admin %}
+              <small class="text-muted ms-2"><i class="bi bi-chat-dots-fill me-1"></i>Tiene comentario del administrador</small>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="mb-form">
+            <label class="form-label-pro">Nombre de la Actividad</label>
+            <input type="text" name="nombre_actividad" class="form-control-pro bg-white"
+                   value="{{ doc.nombre_actividad }}" required>
+          </div>
+
+          <div class="row g-3 mb-form">
+            <div class="col-md-6">
+              <label class="form-label-pro">Tipo de Formación</label>
+              <select name="tipo_formacion" id="edit_tipo_{{ doc.id }}" class="form-control-pro bg-white"
+                      onchange="toggleOtroTipoEdit('{{ doc.id }}')" required>
+                {% for tipo in tipos %}
+                <option value="{{ tipo }}" {% if doc.tipo_formacion == tipo %}selected{% endif %}>{{ tipo }}</option>
+                {% endfor %}
+                <option value="Otro" {% if doc.tipo_formacion not in tipos %}selected{% endif %}>Otro</option>
+              </select>
+            </div>
+            <div class="col-md-6" id="edit_div_otro_{{ doc.id }}"
+                 style="display: {% if doc.tipo_formacion not in tipos %}block{% else %}none{% endif %};">
+              <label class="form-label-pro">Especifique el tipo</label>
+              <input type="text" name="otro_tipo_formacion" class="form-control-pro bg-white"
+                     value="{{ doc.tipo_formacion if doc.tipo_formacion not in tipos else '' }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label-pro">Institución Emisora</label>
+              <input type="text" name="institucion" class="form-control-pro bg-white"
+                     value="{{ doc.institucion }}" required>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-form">
+            <div class="col-md-6">
+              <label class="form-label-pro">Fecha de Emisión</label>
+              <input type="date" name="fecha_emision" class="form-control-pro bg-white"
+                     value="{{ doc.fecha_emision }}" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label-pro">Horas Acreditadas</label>
+              <input type="number" name="horas" class="form-control-pro bg-white"
+                     value="{{ doc.horas }}" required>
+            </div>
+          </div>
+
+          <div class="mb-form p-3 rounded-3" style="background: #F1F5F9; border: 1px dashed var(--borde);">
+            <label class="form-label-pro" style="font-size: 0.8rem;">
+              <i class="bi bi-file-earmark-arrow-up me-1"></i>Reemplazar Archivo (Opcional)
+            </label>
+            <input type="file" name="certificado_file" class="form-control-pro bg-white p-2"
+                   accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+            <small class="text-muted d-block mt-1">
+              <i class="bi bi-check-circle-fill text-success me-1"></i>
+              Archivo actual guardado. Solo sube uno nuevo si deseas reemplazarlo.
+            </small>
+          </div>
+
+        </div>
+        <div class="modal-footer" style="background: #F8FAFC; border-top: 1px solid var(--borde);">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn-primary-pro" style="width: auto; background: linear-gradient(135deg, #B45309, #D97706);">
+            <i class="bi bi-save me-1"></i>Guardar Cambios
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<!-- ─── MODAL: Ver comentario del admin (MEJORA 2) ─── -->
+<div class="modal fade" id="modalComentarioAdmin" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0" style="border-radius: 16px; overflow: hidden; box-shadow: 0 25px 50px rgba(0,0,0,0.15);">
+      <!-- Header con gradiente -->
+      <div class="modal-header border-0" style="background: linear-gradient(135deg, #1E3A5F 0%, #2563EB 100%); padding: 1.5rem 1.8rem;">
+        <div class="d-flex align-items-center gap-3">
+          <div style="width: 44px; height: 44px; background: rgba(255,255,255,0.15); border-radius: 12px; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px);">
+            <i class="bi bi-chat-quote-fill" style="font-size: 1.2rem; color: white;"></i>
+          </div>
+          <div>
+            <h5 class="modal-title mb-0" style="color: white; font-weight: 700; font-size: 1rem;">Comentario del Administrador</h5>
+            <small style="color: rgba(255,255,255,0.75);">Retroalimentación sobre tu certificado</small>
+          </div>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body p-0">
+        <!-- Info del certificado -->
+        <div class="px-4 py-3" style="background: #F8FAFC; border-bottom: 1px solid var(--borde);">
+          <small style="color: var(--texto-suave); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em;">Certificado</small>
+          <div id="comentario-nombre-doc" style="font-weight: 700; color: var(--azul-oscuro); font-size: 0.95rem; margin-top: 0.2rem;"></div>
+          <div class="mt-1" id="comentario-estado-doc"></div>
+        </div>
+
+        <!-- Comentario principal -->
+        <div class="p-4">
+          <div style="display: flex; align-items: flex-start; gap: 0.8rem;">
+            <div style="width: 36px; height: 36px; background: #EFF6FF; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 0.1rem;">
+              <i class="bi bi-person-badge-fill" style="color: #2563EB; font-size: 1rem;"></i>
+            </div>
+            <div style="flex: 1;">
+              <div style="font-size: 0.75rem; font-weight: 700; color: var(--azul-oscuro); margin-bottom: 0.5rem;">Administrador del Sistema</div>
+              <div id="comentario-texto-admin"
+                   style="background: linear-gradient(135deg, #F0F7FF, #EFF6FF);
+                          border: 1px solid #BFDBFE;
+                          border-left: 4px solid #2563EB;
+                          border-radius: 0 12px 12px 12px;
+                          padding: 1rem 1.2rem;
+                          font-size: 0.9rem;
+                          color: #1E293B;
+                          line-height: 1.6;
+                          white-space: pre-wrap;">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer border-0 px-4 py-3" style="background: #F8FAFC;">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="border-radius: 8px; font-weight: 600;">
+          <i class="bi bi-x me-1"></i>Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
+  // Mejora 1: toggle tipo "Otro" en el modal de subida
   function toggleOtroTipo() {
     var select = document.getElementById("tipo_formacion");
     var divOtro = document.getElementById("div_otro_tipo");
@@ -230,6 +404,38 @@
       divOtro.style.display = "none";
       inputOtro.required = false;
     }
+  }
+
+  // Mejora 1: toggle tipo "Otro" en modales de edición
+  function toggleOtroTipoEdit(docId) {
+    var select = document.getElementById("edit_tipo_" + docId);
+    var divOtro = document.getElementById("edit_div_otro_" + docId);
+    if (select.value === "Otro") {
+      divOtro.style.display = "block";
+    } else {
+      divOtro.style.display = "none";
+    }
+  }
+
+  // Mejora 2: abrir modal de comentario con datos dinámicos
+  function abrirComentario(nombreDoc, estado, comentario) {
+    document.getElementById('comentario-nombre-doc').textContent = nombreDoc;
+    document.getElementById('comentario-texto-admin').textContent = comentario;
+
+    // Estado badge
+    const estadoEl = document.getElementById('comentario-estado-doc');
+    const colorMap = {
+      'Aprobado': { bg: '#DCFCE7', color: '#166534', border: '#86EFAC' },
+      'Rechazado': { bg: '#FEE2E2', color: '#991B1B', border: '#FCA5A5' },
+      'Pendiente': { bg: '#FEF3C7', color: '#92400E', border: '#FCD34D' }
+    };
+    const c = colorMap[estado] || { bg: '#F1F5F9', color: '#475569', border: '#CBD5E1' };
+    estadoEl.innerHTML = `<span style="display:inline-flex; align-items:center; gap:0.3rem; background:${c.bg}; color:${c.color}; border:1px solid ${c.border}; border-radius:20px; padding:0.2rem 0.7rem; font-size:0.75rem; font-weight:700;">
+      <span style="width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block;"></span>${estado}
+    </span>`;
+
+    var modal = new bootstrap.Modal(document.getElementById('modalComentarioAdmin'));
+    modal.show();
   }
 </script>
 {% endblock %}

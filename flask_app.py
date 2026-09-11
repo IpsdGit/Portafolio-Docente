@@ -84,6 +84,14 @@ try:
     _conn.commit()
     _conn.close()
 except Exception as e: print("Error en parche Reflexiones:", e)
+
+# Parche: columna 'activo' en Usuarios (para gestión de cuentas)
+try:
+    _conn = sqlite3.connect(DB_PATH)
+    _conn.execute("ALTER TABLE Usuarios ADD COLUMN activo INTEGER DEFAULT 1")
+    _conn.commit()
+    _conn.close()
+except: pass
 # ------------------------------------------------------------------------
 
 TIPOS_FORMACION = ['Taller', 'Seminario', 'Diplomado', 'Posgrado', 'Congreso', 'Jornada Pedagógica', 'Curso en Línea (MOOC)', 'Práctica Docente', 'Otro']
@@ -426,6 +434,48 @@ def procesar_subida():
     except: flash('Error al procesar la subida.', 'danger')
     return redirect(url_for('inicio_docente'))
 
+@app.route('/docente/certificado/<int:doc_id>/editar', methods=['POST'])
+def editar_certificado(doc_id):
+    if not requiere_login(rol='Docente'): return redirect(url_for('login'))
+    uid = session['usuario_id']
+    try:
+        con = obtener_conexion()
+        doc = con.execute("SELECT * FROM Documentos WHERE id=? AND usuario_id=?", (doc_id, uid)).fetchone()
+        if not doc:
+            con.close()
+            flash('No tienes permiso para editar este certificado.', 'danger')
+            return redirect(url_for('inicio_docente'))
+
+        nombre_actividad = request.form.get('nombre_actividad', '').strip()
+        tipo_final = request.form.get('tipo_formacion', '')
+        if tipo_final == 'Otro': tipo_final = request.form.get('otro_tipo_formacion', '').strip()
+        institucion = request.form.get('institucion', '').strip()
+        fecha_emision = request.form.get('fecha_emision', '')
+        horas = request.form.get('horas', 0)
+
+        # Archivo nuevo (opcional)
+        url_archivo = doc['url_archivo']
+        archivo = request.files.get('certificado_file')
+        if archivo and archivo.filename != '':
+            if extension_permitida(archivo.filename):
+                url_archivo = subir_a_firebase(archivo, f"portafolios/docente_{uid}")
+            else:
+                con.close()
+                flash('Formato de archivo no permitido.', 'danger')
+                return redirect(url_for('inicio_docente'))
+
+        con.execute("""
+            UPDATE Documentos
+            SET nombre_actividad=?, tipo_formacion=?, institucion=?, fecha_emision=?, horas=?, url_archivo=?
+            WHERE id=? AND usuario_id=?
+        """, (nombre_actividad, tipo_final, institucion, fecha_emision, horas, url_archivo, doc_id, uid))
+        con.commit()
+        con.close()
+        flash('¡Certificado actualizado correctamente!', 'success')
+    except Exception as e:
+        flash(f'Error al actualizar el certificado: {str(e)}', 'danger')
+    return redirect(url_for('inicio_docente'))
+
 # ─────────────────────────────────────────────
 #  MÓDULO: MIS CLASES
 # ─────────────────────────────────────────────
@@ -750,6 +800,116 @@ def expediente_docente(docente_id):
         horas_totales = sum(int(c['horas']) for c in certificados if c['estado'] == 'Aprobado')
         return render_template('expediente_admin.html', nombre=session['nombre'], docente=docente, titulos=titulos, certificados=certificados, clases=clases, horas_totales=horas_totales)
     except: return redirect(url_for('panel_admin'))
+
+# ─────────────────────────────────────────────
+#  MÓDULO: GESTIÓN DE USUARIOS (ADMIN)
+# ─────────────────────────────────────────────
+@app.route('/admin/usuarios')
+def admin_usuarios():
+    if not requiere_login(rol='Administrador'): return redirect(url_for('login'))
+    try:
+        con = obtener_conexion()
+        docentes = con.execute("""
+            SELECT u.id, u.nombre, u.correo, u.activo,
+                   (SELECT COUNT(*) FROM Documentos d WHERE d.usuario_id = u.id) AS total_certs,
+                   (SELECT COUNT(*) FROM Documentos d WHERE d.usuario_id = u.id AND d.estado = 'Aprobado') AS certs_aprobados
+            FROM Usuarios u
+            WHERE u.rol = 'Docente'
+            ORDER BY u.nombre ASC
+        """).fetchall()
+        admins = con.execute("""
+            SELECT id, nombre, correo, activo FROM Usuarios
+            WHERE rol = 'Administrador'
+            ORDER BY nombre ASC
+        """).fetchall()
+        todos_docentes_para_promover = con.execute("""
+            SELECT id, nombre, correo FROM Usuarios
+            WHERE rol = 'Docente'
+            ORDER BY nombre ASC
+        """).fetchall()
+        con.close()
+    except Exception as e:
+        flash(f'Error al cargar usuarios: {str(e)}', 'danger')
+        docentes, admins, todos_docentes_para_promover = [], [], []
+    return render_template('admin_usuarios.html',
+                           nombre=session['nombre'],
+                           docentes=docentes,
+                           admins=admins,
+                           todos_docentes=todos_docentes_para_promover)
+
+@app.route('/admin/usuarios/<int:uid>/cambiar_rol', methods=['POST'])
+def cambiar_rol_usuario(uid):
+    if not requiere_login(rol='Administrador'): return redirect(url_for('login'))
+    # Protección: no puede quitarse el rol a sí mismo
+    if uid == session['usuario_id']:
+        flash('No puedes cambiar tu propio rol mientras tienes sesión activa.', 'warning')
+        return redirect(url_for('admin_usuarios'))
+    nuevo_rol = request.form.get('nuevo_rol', '')
+    if nuevo_rol not in ('Administrador', 'Docente'):
+        flash('Rol no válido.', 'danger')
+        return redirect(url_for('admin_usuarios'))
+    try:
+        con = obtener_conexion()
+        usuario = con.execute("SELECT nombre, rol FROM Usuarios WHERE id=?", (uid,)).fetchone()
+        if not usuario:
+            con.close()
+            flash('Usuario no encontrado.', 'danger')
+            return redirect(url_for('admin_usuarios'))
+        con.execute("UPDATE Usuarios SET rol=? WHERE id=?", (nuevo_rol, uid))
+        con.commit()
+        con.close()
+        accion = 'promovido a Administrador' if nuevo_rol == 'Administrador' else 'regresado a Docente'
+        flash(f'¡{usuario["nombre"]} ha sido {accion} exitosamente!', 'success')
+    except Exception as e:
+        flash(f'Error al cambiar el rol: {str(e)}', 'danger')
+    return redirect(url_for('admin_usuarios'))
+
+@app.route('/admin/usuarios/<int:uid>/toggle_activo', methods=['POST'])
+def toggle_activo_usuario(uid):
+    if not requiere_login(rol='Administrador'): return redirect(url_for('login'))
+    if uid == session['usuario_id']:
+        flash('No puedes desactivar tu propia cuenta.', 'warning')
+        return redirect(url_for('admin_usuarios'))
+    try:
+        con = obtener_conexion()
+        usuario = con.execute("SELECT nombre, activo FROM Usuarios WHERE id=?", (uid,)).fetchone()
+        if not usuario:
+            con.close()
+            flash('Usuario no encontrado.', 'danger')
+            return redirect(url_for('admin_usuarios'))
+        nuevo_activo = 0 if usuario['activo'] else 1
+        con.execute("UPDATE Usuarios SET activo=? WHERE id=?", (nuevo_activo, uid))
+        con.commit()
+        con.close()
+        estado = 'activado' if nuevo_activo else 'desactivado'
+        flash(f'¡Cuenta de {usuario["nombre"]} {estado} correctamente!', 'success')
+    except Exception as e:
+        flash(f'Error al cambiar estado: {str(e)}', 'danger')
+    return redirect(url_for('admin_usuarios'))
+
+@app.route('/admin/usuarios/crear_admin', methods=['POST'])
+def crear_admin():
+    if not requiere_login(rol='Administrador'): return redirect(url_for('login'))
+    nombre = request.form.get('nombre', '').strip()
+    correo = request.form.get('correo', '').strip().lower()
+    password = request.form.get('password', '')
+    if len(nombre) < 3 or not correo or len(password) < 8:
+        flash('Datos insuficientes para crear el administrador.', 'warning')
+        return redirect(url_for('admin_usuarios'))
+    try:
+        con = obtener_conexion()
+        if con.execute("SELECT id FROM Usuarios WHERE correo=?", (correo,)).fetchone():
+            con.close()
+            flash('Este correo ya está registrado en el sistema.', 'warning')
+            return redirect(url_for('admin_usuarios'))
+        hashed = generate_password_hash(password)
+        con.execute("INSERT INTO Usuarios (nombre, correo, password, rol, activo) VALUES (?,?,?,'Administrador',1)", (nombre, correo, hashed))
+        con.commit()
+        con.close()
+        flash(f'¡Administrador {nombre} creado exitosamente!', 'success')
+    except Exception as e:
+        flash(f'Error al crear administrador: {str(e)}', 'danger')
+    return redirect(url_for('admin_usuarios'))
 
 # ─────────────────────────────────────────────
 #  MANEJADORES DE ERROR
