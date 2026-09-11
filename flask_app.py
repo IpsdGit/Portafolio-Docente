@@ -437,7 +437,7 @@ def inicio_docente():
     try:
         con = obtener_conexion()
         documentos = con.execute("SELECT * FROM Documentos WHERE usuario_id = ? ORDER BY id DESC", (uid,)).fetchall()
-        stats = con.execute("SELECT COUNT(*) as total, SUM(CASE WHEN estado='Aprobado' THEN 1 ELSE 0 END) as aprobados, SUM(CASE WHEN estado='Pendiente' THEN 1 ELSE 0 END) as pendientes, COALESCE(SUM(CASE WHEN estado='Aprobado' THEN horas ELSE 0 END), 0) as horas_aprobadas FROM Documentos WHERE usuario_id = ?", (uid,)).fetchone()
+        stats = con.execute("SELECT COUNT(*) as total, COALESCE(SUM(CASE WHEN estado='Aprobado' THEN 1 ELSE 0 END), 0) as aprobados, COALESCE(SUM(CASE WHEN estado='Pendiente' THEN 1 ELSE 0 END), 0) as pendientes, COALESCE(SUM(CASE WHEN estado='Aprobado' THEN horas ELSE 0 END), 0) as horas_aprobadas FROM Documentos WHERE usuario_id = ?", (uid,)).fetchone()
         con.close()
     except Exception: documentos, stats = [], None
     return render_template('subir_documento.html', nombre=session['nombre'], documentos=documentos, stats=stats, tipos=TIPOS_FORMACION)
@@ -744,7 +744,7 @@ def panel_admin():
 
         docentes_agrupados = sorted(docentes_resumen.values(), key=lambda x: (-x['pendientes'], x['nombre_docente']))
         
-        kpis = con.execute("SELECT (SELECT COUNT(DISTINCT id) FROM Usuarios WHERE rol = 'Docente') AS total_docentes, COUNT(*) AS total_docs, SUM(CASE WHEN estado='Pendiente' THEN 1 ELSE 0 END) AS pendientes, SUM(CASE WHEN estado='Aprobado' THEN 1 ELSE 0 END) AS aprobados, COALESCE(SUM(CASE WHEN estado='Aprobado' THEN horas ELSE 0 END), 0) AS horas_aprobadas FROM Documentos").fetchone()
+        kpis = con.execute("SELECT (SELECT COUNT(DISTINCT id) FROM Usuarios WHERE rol = 'Docente') AS total_docentes, COUNT(*) AS total_docs, COALESCE(SUM(CASE WHEN estado='Pendiente' THEN 1 ELSE 0 END), 0) AS pendientes, COALESCE(SUM(CASE WHEN estado='Aprobado' THEN 1 ELSE 0 END), 0) AS aprobados, COALESCE(SUM(CASE WHEN estado='Aprobado' THEN horas ELSE 0 END), 0) AS horas_aprobadas FROM Documentos").fetchone()
         con.close()
     except: documentos, kpis, docentes_agrupados = [], None, []
     return render_template('panel_admin.html', nombre=session['nombre'], documentos=documentos, kpis=kpis, docentes_agrupados=docentes_agrupados, filtro_estado=filtro_estado, filtro_docente=filtro_docente)
