@@ -312,6 +312,11 @@
             <div id="vista-filo">
               {% if perfil and perfil.filosofia_ensenanza %}
                 <div style="font-size: .88rem; color: #475569; background: #F8FAFC; padding: 1.2rem; border-radius: 8px; border: 1px solid var(--borde); white-space: pre-wrap; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); border-left: 4px solid var(--dorado);">{{ perfil.filosofia_ensenanza }}</div>
+                {% if perfil.filosofia_url %}
+                <div class="mt-2">
+                  <a href="{{ perfil.filosofia_url }}" target="_blank" class="btn-export" style="background: white; border: 1px solid var(--azul-claro); color: var(--azul-claro); font-size: .8rem; text-decoration: none; padding: .3rem .7rem;"><i class="bi bi-file-earmark-text me-1"></i>Ver documento adjunto</a>
+                </div>
+                {% endif %}
               {% else %}
                 <div class="text-center py-3" style="background: #FFFBEB; border: 1px dashed #FCD34D; border-radius: 8px;">
                   <i class="bi bi-quote" style="font-size: 2rem; color: #FCD34D;"></i>
@@ -321,6 +326,13 @@
             </div>
             <div id="edit-filo" style="display: none;">
               <textarea name="filosofia_ensenanza" class="form-control-pro" rows="4" placeholder="Describe brevemente tus principios pedagógicos y cómo abordas el aprendizaje de tus estudiantes...">{{ perfil.filosofia_ensenanza if perfil and perfil.filosofia_ensenanza else '' }}</textarea>
+              <div class="mt-3 p-3" style="background: #F1F5F9; border-radius: 8px; border: 1px dashed var(--borde);">
+                <label class="form-label-pro" style="font-size: .8rem;"><i class="bi bi-paperclip me-1"></i> Adjuntar documento (PDF, Word) — Opcional</label>
+                <input type="file" name="filosofia_file" class="form-control-pro bg-white p-2" accept=".pdf,.doc,.docx" style="font-size: .8rem;">
+                {% if perfil and perfil.filosofia_url %}
+                <small class="text-muted d-block mt-2"><i class="bi bi-check-circle-fill text-success me-1"></i>Ya tienes un documento adjunto. <a href="{{ perfil.filosofia_url }}" target="_blank">Ver archivo</a></small>
+                {% endif %}
+              </div>
               <div class="d-flex gap-2 mt-3">
                 <button type="submit" class="btn-export" style="background: var(--exito); color: white; border: none; font-size: .8rem;"><i class="bi bi-save me-1"></i> Guardar Cambios</button>
                 <button type="button" class="btn-export" style="background: #E2E8F0; color: #475569; border: none; font-size: .8rem;" onclick="toggleEdit('filo')">Cancelar</button>

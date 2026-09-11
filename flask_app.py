@@ -92,6 +92,14 @@ try:
     _conn.commit()
     _conn.close()
 except: pass
+
+# Parche: columna 'filosofia_url' en PerfilDocente
+try:
+    _conn = sqlite3.connect(DB_PATH)
+    _conn.execute("ALTER TABLE PerfilDocente ADD COLUMN filosofia_url TEXT")
+    _conn.commit()
+    _conn.close()
+except: pass
 # ------------------------------------------------------------------------
 
 TIPOS_FORMACION = ['Taller', 'Seminario', 'Diplomado', 'Posgrado', 'Congreso', 'Jornada Pedagógica', 'Curso en Línea (MOOC)', 'Práctica Docente', 'Otro']
@@ -312,10 +320,22 @@ def ver_perfil():
             if not premios_url:
                 premios_url = perfil_existente['premios_url'] if perfil_existente else None
 
+            # Procesar archivo de filosofía de enseñanza
+            filosofia_url = perfil_existente['filosofia_url'] if perfil_existente and 'filosofia_url' in perfil_existente.keys() else None
+            archivo_filo = request.files.get('filosofia_file')
+            if archivo_filo and archivo_filo.filename != '':
+                if extension_permitida(archivo_filo.filename):
+                    try:
+                        filosofia_url = subir_a_firebase(archivo_filo, f'filosofia_docentes/docente_{uid}')
+                    except Exception as e:
+                        flash(f'Error al subir el documento de filosofía: {str(e)}', 'warning')
+                else:
+                    flash('Formato no permitido para filosofía. Usa PDF o Word.', 'warning')
+
             if perfil_existente:
-                con.execute("UPDATE PerfilDocente SET curriculum=?, facultad=?, departamento=?, filosofia_ensenanza=?, premios=?, premios_url=?, responsabilidad=?, redes_sociales=?, cv_url=? WHERE usuario_id=?", (curriculum, facultad, departamento, filosofia_ensenanza, premios, premios_url, responsabilidad, redes_sociales, cv_url, uid))
+                con.execute("UPDATE PerfilDocente SET curriculum=?, facultad=?, departamento=?, filosofia_ensenanza=?, premios=?, premios_url=?, responsabilidad=?, redes_sociales=?, cv_url=?, filosofia_url=? WHERE usuario_id=?", (curriculum, facultad, departamento, filosofia_ensenanza, premios, premios_url, responsabilidad, redes_sociales, cv_url, filosofia_url, uid))
             else:
-                con.execute("INSERT INTO PerfilDocente (usuario_id, curriculum, facultad, departamento, filosofia_ensenanza, premios, premios_url, responsabilidad, redes_sociales, cv_url) VALUES (?,?,?,?,?,?,?,?,?,?)", (uid, curriculum, facultad, departamento, filosofia_ensenanza, premios, premios_url, responsabilidad, redes_sociales, cv_url))
+                con.execute("INSERT INTO PerfilDocente (usuario_id, curriculum, facultad, departamento, filosofia_ensenanza, premios, premios_url, responsabilidad, redes_sociales, cv_url, filosofia_url) VALUES (?,?,?,?,?,?,?,?,?,?,?)", (uid, curriculum, facultad, departamento, filosofia_ensenanza, premios, premios_url, responsabilidad, redes_sociales, cv_url, filosofia_url))
             con.commit()
             con.close()
             flash('¡Perfil actualizado correctamente!', 'success')
