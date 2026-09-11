@@ -884,6 +884,34 @@ def cambiar_rol_usuario(uid):
         flash(f'Error al cambiar el rol: {str(e)}', 'danger')
     return redirect(url_for('admin_usuarios'))
 
+@app.route('/admin/usuarios/<int:uid>/restablecer_password', methods=['POST'])
+def restablecer_password(uid):
+    if not requiere_login(rol='Administrador'): return redirect(url_for('login'))
+    
+    nueva_password = request.form.get('nueva_password')
+    if not nueva_password or len(nueva_password) < 8:
+        flash('La nueva contraseña debe tener al menos 8 caracteres.', 'danger')
+        return redirect(url_for('admin_usuarios'))
+        
+    try:
+        con = obtener_conexion()
+        usuario = con.execute("SELECT id, nombre, rol FROM Usuarios WHERE id=?", (uid,)).fetchone()
+        
+        if usuario:
+            hash_pass = generate_password_hash(nueva_password)
+            con.execute("UPDATE Usuarios SET password=? WHERE id=?", (hash_pass, uid))
+            con.commit()
+            flash(f'Contraseña actualizada exitosamente para {usuario["nombre"]}.', 'success')
+        else:
+            flash('Usuario no encontrado.', 'danger')
+            
+    except Exception as e:
+        flash(f'Error al restablecer contraseña: {str(e)}', 'danger')
+    finally:
+        if 'con' in locals(): con.close()
+        
+    return redirect(url_for('admin_usuarios'))
+
 @app.route('/admin/usuarios/<int:uid>/toggle_activo', methods=['POST'])
 def toggle_activo_usuario(uid):
     if not requiere_login(rol='Administrador'): return redirect(url_for('login'))

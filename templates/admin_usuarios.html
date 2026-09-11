@@ -146,8 +146,16 @@
                          class="btn-icon azul" title="Ver Expediente" style="width:30px; height:30px; font-size:0.8rem;">
                         <i class="bi bi-folder2-open"></i>
                       </a>
+                      <!-- Restablecer Contraseña -->
+                      <button type="button" class="btn-icon"
+                        style="background:#F1F5F9; color:#475569; width:30px; height:30px; font-size:0.8rem;"
+                        title="Restablecer Contraseña"
+                        onclick="abrirModalRestablecer({{ d.id }}, '{{ d.nombre }}')">
+                        <i class="bi bi-key-fill"></i>
+                      </button>
                       <!-- Promover a Admin -->
                       <button type="button"
+
                         class="btn-icon"
                         style="background:#FFFBEB; color:#D97706; width:30px; height:30px; font-size:0.8rem;"
                         title="Promover a Administrador"
@@ -346,7 +354,40 @@
   </div>
 </div>
 
+<!-- ─── MODAL: Restablecer Contraseña ─── -->
+<div class="modal fade" id="modalRestablecerPass" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content border-0" style="border-radius: 16px; overflow: hidden;">
+      <div class="modal-header border-0" style="background: var(--azul-claro); padding: 1.2rem 1.5rem;">
+        <h6 class="modal-title mb-0" style="color: white; font-weight: 800;">
+          <i class="bi bi-key-fill me-2"></i>Restablecer Contraseña
+        </h6>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="form-restablecer-pass" method="POST">
+        <div class="modal-body p-4" style="background: #F8FAFC;">
+          <p style="font-size: 0.85rem; color: #475569; margin-bottom: 1rem;">
+            Establece una nueva contraseña para <strong id="nombre-usuario-restablecer" style="color: var(--azul-oscuro);"></strong>.
+          </p>
+          <div class="mb-form">
+            <label class="form-label-pro">Nueva Contraseña</label>
+            <input type="text" name="nueva_password" class="form-control-pro bg-white" placeholder="Mínimo 8 caracteres" minlength="8" required>
+            <small class="text-muted" style="font-size: 0.7rem; display: block; margin-top: 0.3rem;">Recomendación: Unah2026!</small>
+          </div>
+        </div>
+        <div class="modal-footer border-0 px-4 py-3" style="background: #F8FAFC;">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn-primary-pro" style="width: auto; background: var(--azul-claro);">
+            <i class="bi bi-check2-circle me-1"></i>Guardar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <script>
+
   // Confirmar cambio de rol dinámico
   function confirmarCambioRol(uid, nombre, nuevoRol) {
     const textoEl = document.getElementById('texto-confirmacion');
@@ -368,6 +409,13 @@
     }
 
     new bootstrap.Modal(document.getElementById('modalCambiarRol')).show();
+  }
+
+  // Abrir modal de restablecer contraseña
+  function abrirModalRestablecer(uid, nombre) {
+    document.getElementById('nombre-usuario-restablecer').innerText = nombre;
+    document.getElementById('form-restablecer-pass').action = `/admin/usuarios/${uid}/restablecer_password`;
+    new bootstrap.Modal(document.getElementById('modalRestablecerPass')).show();
   }
 
   // Promover docente seleccionado desde el dropdown
