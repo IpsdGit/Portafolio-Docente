@@ -132,6 +132,17 @@ def requiere_login(rol=None):
     if rol and session.get('rol') != rol: return False
     return True
 
+# Correos con acceso a Gestión de Usuarios (Super Admins)
+SUPER_ADMIN_EMAILS = ['bayron@unah.edu.hn', 'admin@unah.edu.hn']
+
+def es_superadmin():
+    return session.get('correo') in SUPER_ADMIN_EMAILS
+
+# Inyectar variables globales en los templates
+@app.context_processor
+def inject_superadmin():
+    return dict(es_superadmin=es_superadmin())
+
 def subir_a_firebase(archivo, carpeta):
     from werkzeug.utils import secure_filename
     nombre_seguro = secure_filename(archivo.filename)
@@ -184,6 +195,7 @@ def login():
         if usuario and check_password_hash(usuario['password'], password):
             session['usuario_id'] = usuario['id']
             session['nombre']     = usuario['nombre']
+            session['correo']     = usuario['correo']
             session['rol']        = usuario['rol']
             session.permanent     = True
             return redirect(url_for('panel_admin') if usuario['rol'] == 'Administrador' else url_for('ver_perfil'))
@@ -827,6 +839,10 @@ def expediente_docente(docente_id):
 @app.route('/admin/usuarios')
 def admin_usuarios():
     if not requiere_login(rol='Administrador'): return redirect(url_for('login'))
+    if not es_superadmin(): 
+        flash('No tienes permisos de Super Administrador para ver esta sección.', 'danger')
+        return redirect(url_for('panel_admin'))
+        
     try:
         con = obtener_conexion()
         docentes = con.execute("""
@@ -860,6 +876,7 @@ def admin_usuarios():
 @app.route('/admin/usuarios/<int:uid>/cambiar_rol', methods=['POST'])
 def cambiar_rol_usuario(uid):
     if not requiere_login(rol='Administrador'): return redirect(url_for('login'))
+    if not es_superadmin(): return redirect(url_for('panel_admin'))
     # Protección: no puede quitarse el rol a sí mismo
     if uid == session['usuario_id']:
         flash('No puedes cambiar tu propio rol mientras tienes sesión activa.', 'warning')
@@ -887,6 +904,7 @@ def cambiar_rol_usuario(uid):
 @app.route('/admin/usuarios/<int:uid>/restablecer_password', methods=['POST'])
 def restablecer_password(uid):
     if not requiere_login(rol='Administrador'): return redirect(url_for('login'))
+    if not es_superadmin(): return redirect(url_for('panel_admin'))
     
     nueva_password = request.form.get('nueva_password')
     if not nueva_password or len(nueva_password) < 8:
@@ -915,6 +933,7 @@ def restablecer_password(uid):
 @app.route('/admin/usuarios/<int:uid>/toggle_activo', methods=['POST'])
 def toggle_activo_usuario(uid):
     if not requiere_login(rol='Administrador'): return redirect(url_for('login'))
+    if not es_superadmin(): return redirect(url_for('panel_admin'))
     if uid == session['usuario_id']:
         flash('No puedes desactivar tu propia cuenta.', 'warning')
         return redirect(url_for('admin_usuarios'))
@@ -938,6 +957,7 @@ def toggle_activo_usuario(uid):
 @app.route('/admin/usuarios/crear_admin', methods=['POST'])
 def crear_admin():
     if not requiere_login(rol='Administrador'): return redirect(url_for('login'))
+    if not es_superadmin(): return redirect(url_for('panel_admin'))
     nombre = request.form.get('nombre', '').strip()
     correo = request.form.get('correo', '').strip().lower()
     password = request.form.get('password', '')
