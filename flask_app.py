@@ -817,7 +817,7 @@ def expediente_docente(docente_id):
     if not requiere_login(rol='Administrador'): return redirect(url_for('login'))
     try:
         con = obtener_conexion()
-        docente = con.execute("SELECT u.id, u.nombre, u.correo, p.curriculum, p.facultad, p.departamento, p.filosofia_ensenanza, p.foto_url, p.cv_url, p.redes_sociales, p.premios, p.premios_url, p.responsabilidad FROM Usuarios u LEFT JOIN PerfilDocente p ON u.id = p.usuario_id WHERE u.id = ? AND u.rol = 'Docente'", (docente_id,)).fetchone()
+        docente = con.execute("SELECT u.id, u.nombre, u.correo, p.curriculum, p.facultad, p.departamento, p.filosofia_ensenanza, p.foto_url, p.cv_url, p.redes_sociales, p.premios, p.premios_url, p.responsabilidad, p.filosofia_url FROM Usuarios u LEFT JOIN PerfilDocente p ON u.id = p.usuario_id WHERE u.id = ? AND u.rol = 'Docente'", (docente_id,)).fetchone()
         if not docente: return redirect(url_for('panel_admin'))
         titulos = con.execute("SELECT * FROM TitulosDocente WHERE usuario_id=? ORDER BY id ASC", (docente_id,)).fetchall()
         certificados = con.execute("SELECT * FROM Documentos WHERE usuario_id = ? ORDER BY id DESC", (docente_id,)).fetchall()
