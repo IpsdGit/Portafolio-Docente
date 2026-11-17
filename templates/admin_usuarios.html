@@ -20,13 +20,13 @@
 </nav>
 
 <!-- Sub-nav admin -->
-<div style="background-color: var(--azul-oscuro); padding: 0 2rem; border-top: 1px solid rgba(255,255,255,0.05); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 1.5rem;">
-  <div class="d-flex gap-4">
-    <a href="{{ url_for('panel_admin') }}" style="text-decoration: none; padding: 0.8rem 0.5rem; font-weight: 600; font-size: 0.95rem; color: #94A3B8; border-bottom: 3px solid transparent;" onmouseover="this.style.color='white'" onmouseout="this.style.color='#94A3B8'">
-      <i class="bi bi-speedometer2 me-2"></i>Panel Principal
+<div class="subnav-institucional">
+  <div class="subnav-links">
+    <a href="{{ url_for('panel_admin') }}" class="subnav-link">
+      <i class="bi bi-speedometer2"></i>Panel Principal
     </a>
-    <a href="{{ url_for('admin_usuarios') }}" style="text-decoration: none; padding: 0.8rem 0.5rem; font-weight: 600; font-size: 0.95rem; color: var(--dorado); border-bottom: 3px solid var(--dorado);">
-      <i class="bi bi-people-fill me-2"></i>Gestión de Usuarios
+    <a href="{{ url_for('admin_usuarios') }}" class="subnav-link active">
+      <i class="bi bi-people-fill"></i>Gestión de Usuarios
     </a>
   </div>
 </div>
@@ -58,17 +58,17 @@
   </div>
 
   <!-- KPIs rápidos -->
-  <div class="kpi-grid fade-in-up delay-1 mb-4" style="grid-template-columns: repeat(3, 1fr);">
+  <div class="kpi-grid fade-in-up delay-1 mb-4" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
     <div class="kpi-card" style="--kpi-color:#2563EB">
-      <div class="kpi-icon">👥</div>
+      <div class="kpi-icon"><i class="bi bi-people-fill"></i></div>
       <div class="kpi-info"><h3>{{ docentes|length }}</h3><p>Docentes Registrados</p></div>
     </div>
     <div class="kpi-card" style="--kpi-color:#D97706">
-      <div class="kpi-icon">🛡️</div>
+      <div class="kpi-icon"><i class="bi bi-shield-lock-fill"></i></div>
       <div class="kpi-info"><h3>{{ admins|length }}</h3><p>Administradores</p></div>
     </div>
     <div class="kpi-card" style="--kpi-color:#16A34A">
-      <div class="kpi-icon">✅</div>
+      <div class="kpi-icon"><i class="bi bi-person-check-fill"></i></div>
       <div class="kpi-info"><h3>{{ docentes|selectattr('activo', 'equalto', 1)|list|length }}</h3><p>Cuentas Activas</p></div>
     </div>
   </div>

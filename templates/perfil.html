@@ -10,8 +10,8 @@
   <div class="d-flex align-items-center">
     
     <div class="dropdown me-4">
-      <div class="position-relative d-flex align-items-center" style="cursor: pointer;" data-bs-toggle="dropdown" aria-expanded="false" title="Notificaciones">
-        <i class="bi bi-bell-fill" style="font-size: 1.3rem; color: #94A3B8; transition: color 0.2s;" onmouseover="this.style.color='white'" onmouseout="this.style.color='#94A3B8'"></i>
+      <div class="position-relative notificacion-bell" data-bs-toggle="dropdown" aria-expanded="false" title="Notificaciones">
+        <i class="bi bi-bell-fill" style="font-size: 1.1rem;"></i>
         {% if total_notificaciones > 0 %}
         <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light" style="font-size: 0.65rem; padding: 0.25em 0.45em;">
           {{ total_notificaciones }}
@@ -58,16 +58,16 @@
   </div>
 </nav>
 
-<div style="background-color: var(--azul-oscuro); padding: 0 2rem; border-top: 1px solid rgba(255,255,255,0.05); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 1.5rem;">
-  <div class="d-flex gap-4">
-    <a href="{{ url_for('ver_perfil') }}" style="text-decoration: none; padding: 0.8rem 0.5rem; font-weight: 600; font-size: 0.95rem; transition: 0.2s; color: var(--dorado); border-bottom: 3px solid var(--dorado);">
-      <i class="bi bi-person-fill me-2"></i>Mi Perfil
+<div class="subnav-institucional">
+  <div class="subnav-links">
+    <a href="{{ url_for('ver_perfil') }}" class="subnav-link active">
+      <i class="bi bi-person-fill"></i>Mi Perfil
     </a>
-    <a href="{{ url_for('inicio_docente') }}" style="text-decoration: none; padding: 0.8rem 0.5rem; font-weight: 600; font-size: 0.95rem; transition: 0.2s; color: #94A3B8; border-bottom: 3px solid transparent;" onmouseover="this.style.color='white'" onmouseout="this.style.color='#94A3B8'">
-      <i class="bi bi-patch-check-fill me-2"></i>Certificados
+    <a href="{{ url_for('inicio_docente') }}" class="subnav-link">
+      <i class="bi bi-patch-check-fill"></i>Certificados
     </a>
-    <a href="{{ url_for('mis_clases') }}" style="text-decoration: none; padding: 0.8rem 0.5rem; font-weight: 600; font-size: 0.95rem; transition: 0.2s; color: #94A3B8; border-bottom: 3px solid transparent;" onmouseover="this.style.color='white'" onmouseout="this.style.color='#94A3B8'">
-      <i class="bi bi-folder-fill me-2"></i>Mis Clases
+    <a href="{{ url_for('mis_clases') }}" class="subnav-link">
+      <i class="bi bi-folder-fill"></i>Mis Clases
     </a>
   </div>
 </div>
