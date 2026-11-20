@@ -283,11 +283,11 @@
   // Año actual en el footer
   document.getElementById('currentYear').textContent = new Date().getFullYear();
 
-  // Llenar el select de años hasta el año actual para nueva clase
+  // Llenar el select de años incluyendo el año siguiente (2027) para nueva clase
   const selectAnioNueva = document.getElementById('select_anio_nueva');
   if(selectAnioNueva) {
-    const anioActualSistema = new Date().getFullYear();
-    for(let y = anioActualSistema; y >= 2020; y--) {
+    const anioMaximo = Math.max(new Date().getFullYear() + 1, 2027);
+    for(let y = anioMaximo; y >= 2020; y--) {
       let opt = document.createElement('option');
       opt.value = y;
       opt.textContent = y;

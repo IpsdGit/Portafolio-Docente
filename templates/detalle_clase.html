@@ -431,13 +431,13 @@
       }
     }
 
-    // 3. Llenar el select de años para editar y auto-seleccionar el correcto
+    // 3. Llenar el select de años para editar (incluyendo 2027) y auto-seleccionar el correcto
     const selectAnioEditar = document.getElementById('select_anio_editar');
     if(selectAnioEditar) {
-      const anioActualSistema = new Date().getFullYear();
+      const anioMaximo = Math.max(new Date().getFullYear() + 1, 2027);
       const periodoGuardado = selectAnioEditar.getAttribute('data-periodo-guardado') || "";
       
-      for(let y = anioActualSistema; y >= 2020; y--) {
+      for(let y = anioMaximo; y >= 2020; y--) {
         let opt = document.createElement('option');
         opt.value = y;
         opt.textContent = y;
