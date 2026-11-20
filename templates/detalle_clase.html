@@ -108,10 +108,6 @@
         <button class="btn-export" style="background: white; border: 1px solid var(--borde); color: var(--texto-suave); font-weight: 600;" data-bs-toggle="modal" data-bs-target="#modalEditarClase">
           <i class="bi bi-pencil-square me-1"></i> Editar Clase
         </button>
-        <button type="button" class="btn-export" style="background: white; border: 1px solid #FECACA; color: #DC2626; font-weight: 600;" onclick="if(confirm('Eliminar esta clase y TODAS sus evidencias?')) { document.getElementById('form-del-clase').submit(); }">
-          <i class="bi bi-trash3-fill me-1"></i> Eliminar Clase
-        </button>
-        <form id="form-del-clase" action="/docente/clases/{{ clase.id }}/eliminar" method="POST" style="display:none;"></form>
       </div>
     </div>
   </div>

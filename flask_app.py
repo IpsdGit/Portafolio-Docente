@@ -1621,27 +1621,30 @@ def archivo_muy_grande(e):
     return redirect(request.referrer or url_for('inicio_docente'))
 
 
-@app.route('/docente/clases/<int:clase_id>/eliminar', methods=['POST'])
-def eliminar_clase(clase_id):
-    if not requiere_login(rol='Docente'): return redirect(url_for('login'))
-    uid = session['usuario_id']
+@app.route('/admin/clase/<int:clase_id>/eliminar', methods=['POST'])
+def admin_eliminar_clase(clase_id):
+    if not requiere_login(rol='Administrador'): return redirect(url_for('login'))
     try:
         con = obtener_conexion()
-        clase = con.execute('SELECT id FROM MisClases WHERE id=? AND usuario_id=?', (clase_id, uid)).fetchone()
-        if not clase:
+        scope = obtener_scope_admin(con)
+        clase = con.execute('SELECT id, usuario_id, nombre_espacio FROM MisClases WHERE id=?', (clase_id,)).fetchone()
+        if not clase or not admin_puede_ver_docente(con, scope, clase['usuario_id']):
             con.close()
             flash('No tienes permiso para eliminar esta clase.', 'danger')
-            return redirect(url_for('mis_clases'))
+            return redirect(url_for('panel_admin'))
+        uid = clase['usuario_id']
+        nombre_clase = clase['nombre_espacio']
         con.execute('DELETE FROM EvidenciasClase WHERE clase_id=?', (clase_id,))
         con.execute('DELETE FROM ClaseTiposEvidencia WHERE clase_id=?', (clase_id,))
         con.execute('DELETE FROM ReflexionesClase WHERE clase_id=?', (clase_id,))
-        con.execute('DELETE FROM MisClases WHERE id=? AND usuario_id=?', (clase_id, uid))
+        con.execute('DELETE FROM MisClases WHERE id=?', (clase_id,))
         con.commit()
         con.close()
-        flash('Clase y sus evidencias eliminadas correctamente.', 'info')
+        flash(f'La clase "{nombre_clase}" y sus registros fueron eliminados correctamente.', 'info')
+        return redirect(url_for('expediente_docente', docente_id=uid))
     except Exception as e:
         flash(f'Error al eliminar la clase: {str(e)}', 'danger')
-    return redirect(url_for('mis_clases'))
+    return redirect(url_for('panel_admin'))
 
 if __name__ == '__main__':
     app.run(debug=True)

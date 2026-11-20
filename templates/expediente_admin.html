@@ -206,13 +206,20 @@
           <div id="collapse{{ clase.id }}" class="accordion-collapse collapse for-pdf-expand" data-bs-parent="#acordeonClases">
             <div class="accordion-body" style="background: #F8FAFC; padding: 1.5rem;">
               
-              <!-- Personalizar categorías de evidencias para esta clase -->
+              <!-- Personalizar categorías de evidencias y acciones administrativas de la clase -->
               <div class="ocultar-en-pdf mb-4 p-3 rounded-3" style="background: white; border: 1px solid #DBEAFE;">
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
-                  <div style="font-size: 0.82rem; font-weight: 800; color: var(--azul-oscuro);">
-                    <i class="bi bi-sliders2 me-1" style="color: var(--azul-claro);"></i>Categorías de Evidencias de esta Clase ({{ clase.tipos_evidencia|length }})
+                  <div>
+                    <div style="font-size: 0.82rem; font-weight: 800; color: var(--azul-oscuro);">
+                      <i class="bi bi-sliders2 me-1" style="color: var(--azul-claro);"></i>Categorías de Evidencias de esta Clase ({{ clase.tipos_evidencia|length }})
+                    </div>
+                    <small class="text-muted" style="font-size: 0.72rem;">Agrega o quita evidencias requeridas específicamente para esta asignatura.</small>
                   </div>
-                  <small class="text-muted" style="font-size: 0.72rem;">Agrega o quita evidencias requeridas específicamente para esta asignatura.</small>
+                  <form action="{{ url_for('admin_eliminar_clase', clase_id=clase.id) }}" method="POST" onsubmit="return confirm('¿Seguro que deseas eliminar la clase «{{ clase.nombre_espacio }} ({{ clase.periodo }})» y TODAS sus evidencias y reflexiones? Esta acción no se puede deshacer.');">
+                    <button type="submit" class="btn btn-sm" style="background: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; font-size: 0.75rem; font-weight: 700; border-radius: 8px; padding: 0.3rem 0.75rem;">
+                      <i class="bi bi-trash3-fill me-1"></i>Eliminar Clase
+                    </button>
+                  </form>
                 </div>
                 <div class="d-flex flex-wrap gap-2 mb-3">
                   {% for t_cat in clase.tipos_evidencia %}
