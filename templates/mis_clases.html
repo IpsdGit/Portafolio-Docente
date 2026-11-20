@@ -114,7 +114,9 @@
   <div class="row g-3" id="contenedor-clases">
     {% for clase in clases %}
     
-    {% set porcentaje = (clase.tipos_completados / total_tipos * 100) | round if total_tipos > 0 else 0 %}
+    {% set denom_tipos = clase.total_tipos_clase if clase.total_tipos_clase is defined and clase.total_tipos_clase > 0 else total_tipos %}
+    {% set porcentaje = (clase.tipos_completados / denom_tipos * 100) | round if denom_tipos > 0 else 0 %}
+    {% if porcentaje > 100 %}{% set porcentaje = 100 %}{% endif %}
     {% if porcentaje >= 80 %}
       {% set color_progreso = '#22C55E' %} {% set texto_progreso = 'Alto' %}
     {% elif porcentaje >= 40 %}
@@ -215,6 +217,37 @@
       </div>
       <form action="{{ url_for('nueva_clase') }}" method="POST">
         <div class="modal-body p-4" style="background: #F8FAFC;">
+          {% if clases %}
+          <div class="mb-3 p-3 rounded-3" style="background: #EFF6FF; border: 1px solid #BFDBFE;">
+            <label class="form-label-pro mb-1" style="color: #1E40AF;">
+              <i class="bi bi-copy me-1"></i>Replicar una clase anterior (Opcional)
+            </label>
+            <select name="clase_origen_id" id="select_duplicar_clase" class="form-control-pro bg-white" onchange="cargarDatosClaseAnterior()" style="font-size: 0.85rem;">
+              <option value="">— Crear espacio desde cero —</option>
+              {% for c in clases %}
+              <option value="{{ c.id }}"
+                      data-nombre="{{ c.nombre_espacio }}"
+                      data-codigo="{{ c.codigo or '' }}"
+                      data-uv="{{ c.uv_ca or '' }}"
+                      data-modalidad="{{ c.modalidad or '' }}"
+                      data-naturaleza="{{ c.naturaleza or '' }}"
+                      data-evidencias="{{ c.total_evidencias }}">
+                {{ c.nombre_espacio }}{% if c.codigo %} ({{ c.codigo }}){% endif %} · {{ c.periodo }}
+              </option>
+              {% endfor %}
+            </select>
+            <small class="d-block mt-1" style="font-size: 0.73rem; color: #3B82F6;">
+              Rellena automáticamente los datos y hereda las categorías de evidencias configuradas en esa clase.
+            </small>
+            <div id="wrap_duplicar_evidencias" class="form-check mt-2 pt-2" style="display: none; border-top: 1px dashed #93C5FD;">
+              <input class="form-check-input" type="checkbox" name="duplicar_evidencias" value="1" id="chk_duplicar_evidencias">
+              <label class="form-check-label" for="chk_duplicar_evidencias" style="font-size: 0.8rem; color: #1E3A8A; font-weight: 600;">
+                Duplicar también los archivos de evidencias subidos anteriormente (<span id="span_cant_evidencias">0</span> archivos)
+              </label>
+            </div>
+          </div>
+          {% endif %}
+
           <div class="row g-3">
             
             <div class="col-md-6">
@@ -238,19 +271,19 @@
 
             <div class="col-12">
               <label class="form-label-pro">Nombre del Espacio de Aprendizaje</label>
-              <input type="text" name="nombre_espacio" class="form-control-pro bg-white" placeholder="Ej. Español General" required>
+              <input type="text" name="nombre_espacio" id="nueva_nombre_espacio" class="form-control-pro bg-white" placeholder="Ej. Español General" required>
             </div>
             <div class="col-md-6">
               <label class="form-label-pro">Código</label>
-              <input type="text" name="codigo" class="form-control-pro bg-white" placeholder="Ej. EG-011">
+              <input type="text" name="codigo" id="nueva_codigo" class="form-control-pro bg-white" placeholder="Ej. EG-011">
             </div>
             <div class="col-md-6">
               <label class="form-label-pro">UV / CA</label>
-              <input type="number" name="uv_ca" class="form-control-pro bg-white" placeholder="Ej. 4">
+              <input type="number" name="uv_ca" id="nueva_uv_ca" class="form-control-pro bg-white" placeholder="Ej. 4">
             </div>
             <div class="col-md-6">
               <label class="form-label-pro">Modalidad</label>
-              <select name="modalidad" class="form-control-pro bg-white" required>
+              <select name="modalidad" id="nueva_modalidad" class="form-control-pro bg-white" required>
                 <option value="" disabled selected>Seleccione...</option>
                 <option value="Presencial">Presencial</option>
                 <option value="Virtual">Virtual</option>
@@ -260,7 +293,7 @@
             </div>
             <div class="col-md-6">
               <label class="form-label-pro">Naturaleza</label>
-              <select name="naturaleza" class="form-control-pro bg-white">
+              <select name="naturaleza" id="nueva_naturaleza" class="form-control-pro bg-white">
                 <option value="" disabled selected>Seleccione...</option>
                 <option value="Teórica">Teórica</option>
                 <option value="Práctica">Práctica</option>
@@ -282,6 +315,39 @@
 <script>
   // Año actual en el footer
   document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+  // Autocompletar al elegir una clase anterior para replicar
+  function cargarDatosClaseAnterior() {
+    const sel = document.getElementById('select_duplicar_clase');
+    const wrapEv = document.getElementById('wrap_duplicar_evidencias');
+    const chkEv = document.getElementById('chk_duplicar_evidencias');
+    const spanEv = document.getElementById('span_cant_evidencias');
+    if (!sel) return;
+    const opt = sel.options[sel.selectedIndex];
+    if (!sel.value) {
+      document.getElementById('nueva_nombre_espacio').value = '';
+      document.getElementById('nueva_codigo').value = '';
+      document.getElementById('nueva_uv_ca').value = '';
+      document.getElementById('nueva_modalidad').selectedIndex = 0;
+      document.getElementById('nueva_naturaleza').selectedIndex = 0;
+      if (wrapEv) wrapEv.style.display = 'none';
+      if (chkEv) chkEv.checked = false;
+      return;
+    }
+    document.getElementById('nueva_nombre_espacio').value = opt.getAttribute('data-nombre') || '';
+    document.getElementById('nueva_codigo').value = opt.getAttribute('data-codigo') || '';
+    document.getElementById('nueva_uv_ca').value = opt.getAttribute('data-uv') || '';
+    const mod = opt.getAttribute('data-modalidad') || '';
+    const nat = opt.getAttribute('data-naturaleza') || '';
+    if (mod) document.getElementById('nueva_modalidad').value = mod;
+    if (nat) document.getElementById('nueva_naturaleza').value = nat;
+    const cantEv = parseInt(opt.getAttribute('data-evidencias') || '0', 10);
+    if (wrapEv && spanEv) {
+      spanEv.textContent = cantEv;
+      wrapEv.style.display = cantEv > 0 ? 'block' : 'none';
+      if (chkEv && cantEv === 0) chkEv.checked = false;
+    }
+  }
 
   // Llenar el select de años incluyendo el año siguiente (2027) para nueva clase
   const selectAnioNueva = document.getElementById('select_anio_nueva');

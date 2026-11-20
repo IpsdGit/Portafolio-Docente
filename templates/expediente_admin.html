@@ -206,6 +206,33 @@
           <div id="collapse{{ clase.id }}" class="accordion-collapse collapse for-pdf-expand" data-bs-parent="#acordeonClases">
             <div class="accordion-body" style="background: #F8FAFC; padding: 1.5rem;">
               
+              <!-- Personalizar categorías de evidencias para esta clase -->
+              <div class="ocultar-en-pdf mb-4 p-3 rounded-3" style="background: white; border: 1px solid #DBEAFE;">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                  <div style="font-size: 0.82rem; font-weight: 800; color: var(--azul-oscuro);">
+                    <i class="bi bi-sliders2 me-1" style="color: var(--azul-claro);"></i>Categorías de Evidencias de esta Clase ({{ clase.tipos_evidencia|length }})
+                  </div>
+                  <small class="text-muted" style="font-size: 0.72rem;">Agrega o quita evidencias requeridas específicamente para esta asignatura.</small>
+                </div>
+                <div class="d-flex flex-wrap gap-2 mb-3">
+                  {% for t_cat in clase.tipos_evidencia %}
+                  <span class="d-inline-flex align-items-center gap-1 px-2 py-1 rounded-pill" style="background: #EFF6FF; border: 1px solid #BFDBFE; color: #1E3A8A; font-size: 0.74rem; font-weight: 600;">
+                    {{ t_cat }}
+                    <form action="{{ url_for('eliminar_tipo_evidencia_clase', clase_id=clase.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('¿Quitar la categoría «{{ t_cat }}» de esta clase?');">
+                      <input type="hidden" name="nombre_tipo" value="{{ t_cat }}">
+                      <button type="submit" style="border:none; background:none; color:#DC2626; padding:0 0.15rem; font-weight:800; line-height:1; cursor:pointer;" title="Quitar categoría de esta clase">&times;</button>
+                    </form>
+                  </span>
+                  {% endfor %}
+                </div>
+                <form action="{{ url_for('agregar_tipo_evidencia_clase', clase_id=clase.id) }}" method="POST" class="d-flex flex-wrap gap-2 align-items-center">
+                  <input type="text" name="nombre_tipo" list="catalogoEvidenciasList" class="form-control-pro bg-white" placeholder="Escribe o elige una nueva categoría para esta clase..." style="max-width: 380px; padding: 0.35rem 0.75rem; font-size: 0.8rem;" required>
+                  <button type="submit" class="btn-export" style="padding: 0.38rem 0.85rem; font-size: 0.78rem;">
+                    <i class="bi bi-plus-circle me-1"></i>Agregar a esta clase
+                  </button>
+                </form>
+              </div>
+
               <div class="row g-4">
                 <div class="col-md-6">
                   <h6 style="font-size: 0.9rem; font-weight: 700; color: var(--azul-oscuro); border-bottom: 2px solid var(--dorado); padding-bottom: 0.5rem; display: inline-block;">Evidencias Obligatorias</h6>
@@ -345,6 +372,12 @@
   </div>
   {% endfor %}
 {% endfor %}
+
+<datalist id="catalogoEvidenciasList">
+  {% for cat in catalogo_evidencias %}
+  <option value="{{ cat.nombre }}"></option>
+  {% endfor %}
+</datalist>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script>

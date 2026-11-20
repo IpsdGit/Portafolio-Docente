@@ -33,6 +33,43 @@
 </div>
 
 <div class="main-content pt-0">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="alert-pro {{ category }} fade-in-up">
+        {% if category == 'danger' %}<i class="bi bi-x-circle-fill"></i>
+        {% elif category == 'success' %}<i class="bi bi-check-circle-fill"></i>
+        {% elif category == 'warning' %}<i class="bi bi-exclamation-triangle-fill"></i>
+        {% else %}<i class="bi bi-info-circle-fill"></i>{% endif %}
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endwith %}
+
+  <!-- Banner de Bloque / Carrera y botón Catálogo de Evidencias -->
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4 fade-in-up">
+    <div class="d-flex flex-wrap align-items-center gap-2">
+      {% if scope_admin and scope_admin.es_superadmin %}
+        <span class="badge rounded-pill px-3 py-2" style="background: #EFF6FF; color: #1E40AF; border: 1px solid #BFDBFE; font-size: 0.8rem; font-weight: 700;">
+          <i class="bi bi-shield-fill-check me-1"></i>Super Administrador · Vista Global
+        </span>
+      {% elif scope_admin %}
+        <span class="badge rounded-pill px-3 py-2" style="background: #FEF3C7; color: #92400E; border: 1px solid #FDE68A; font-size: 0.8rem; font-weight: 700;">
+          <i class="bi bi-mortarboard-fill me-1"></i>{{ scope_admin.cargo }} · {{ scope_admin.carrera_nombre }}
+        </span>
+      {% endif %}
+    </div>
+    <button type="button" class="btn-outline-pro" data-bs-toggle="modal" data-bs-target="#modalCatalogoEvidencias" style="padding: 0.45rem 1rem; font-size: 0.82rem;">
+      <i class="bi bi-list-check me-1"></i>Catálogo de Evidencias ({{ catalogo_evidencias|length }})
+    </button>
+  </div>
+
+  {% if scope_admin and scope_admin.sin_carrera %}
+  <div class="alert-pro warning fade-in-up mb-4">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    Aún no tienes una carrera asignada. Solicita al Super Administrador que te asigne tu bloque de carrera para visualizar y evaluar a tus docentes.
+  </div>
+  {% endif %}
+
   {% if kpis %}
   <div class="kpi-grid fade-in-up mb-4">
     <div class="kpi-card" style="--kpi-color:#2563EB">
@@ -79,13 +116,24 @@
   </div>
 
   <div class="card-pro fade-in-up delay-2">
-    <div class="card-pro-header d-flex justify-content-between align-items-center">
+    <div class="card-pro-header d-flex justify-content-between align-items-center flex-wrap gap-2">
       <h5 style="margin:0;"><i class="bi bi-file-earmark-text-fill me-2" style="color:var(--azul-claro)"></i>Documentos Registrados</h5>
-      <a href="{{ url_for('exportar_csv') }}" class="btn-export"><i class="bi bi-filetype-csv me-1"></i> Exportar CSV</a>
+      <a href="{{ url_for('exportar_csv', carrera=filtro_carrera) }}" class="btn-export"><i class="bi bi-filetype-csv me-1"></i> Exportar CSV</a>
     </div>
     
     <div class="card-pro-body" style="background:#F8FAFC; border-bottom:1px solid var(--borde);">
-      <form method="GET" action="{{ url_for('panel_admin') }}" class="d-flex gap-3 align-items-end">
+      <form method="GET" action="{{ url_for('panel_admin') }}" class="d-flex flex-wrap gap-3 align-items-end">
+        {% if es_superadmin and carreras %}
+        <div>
+          <label class="form-label-pro" style="font-size:0.75rem;">Filtrar por Carrera</label>
+          <select name="carrera" class="form-control-pro" style="padding:0.3rem 0.5rem; font-size:0.85rem; width:220px;">
+            <option value="Todas" {% if filtro_carrera == 'Todas' %}selected{% endif %}>Todas las Carreras</option>
+            {% for c in carreras %}
+            <option value="{{ c.id }}" {% if filtro_carrera == (c.id|string) %}selected{% endif %}>{{ c.nombre }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        {% endif %}
         <div>
           <label class="form-label-pro" style="font-size:0.75rem;">Filtrar por Estado</label>
           <select name="estado" class="form-control-pro" style="padding:0.3rem 0.5rem; font-size:0.85rem; width:150px;">
@@ -117,6 +165,9 @@
                   <i class="bi bi-person-circle fs-4" style="color: var(--azul-claro);"></i>
                   {% endif %}
                   <span style="font-size: 1rem;">{{ docente.nombre_docente }}</span>
+                  {% if docente.nombre_carrera %}
+                  <span class="badge rounded-pill" style="background:#F1F5F9; color:#475569; border:1px solid #E2E8F0; font-size:0.7rem; font-weight:600;">{{ docente.nombre_carrera }}</span>
+                  {% endif %}
                   <a href="{{ url_for('expediente_docente', docente_id=docente.usuario_id) }}" class="btn-icon azul ms-2" style="width:26px; height:26px; font-size:.8rem; text-decoration:none;" title="Ver Expediente Completo">
                     <i class="bi bi-box-arrow-up-right"></i>
                   </a>
@@ -289,11 +340,46 @@
 
 </div>
 
+<!-- Modal Catálogo General de Evidencias -->
+<div class="modal fade" id="modalCatalogoEvidencias" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content border-0" style="border-radius: 16px; overflow: hidden;">
+      <div class="modal-header" style="background: var(--azul-oscuro); color: white; border: none;">
+        <div>
+          <h5 class="modal-title mb-0" style="color: white; font-weight: 700;"><i class="bi bi-list-check me-2" style="color: var(--dorado);"></i>Catálogo Base de Evidencias</h5>
+          <small style="color: rgba(255,255,255,0.75); font-size: 0.78rem;">Las nuevas clases heredan este esquema. También puedes adaptar cada clase desde el expediente del docente.</small>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4" style="background: #F8FAFC;">
+        <form action="{{ url_for('agregar_catalogo_evidencia') }}" method="POST" class="d-flex gap-2 mb-4">
+          <input type="text" name="nombre_categoria" class="form-control-pro bg-white" placeholder="Nombre de nueva categoría de evidencia (ej. Guía de Laboratorio)..." required>
+          <button type="submit" class="btn-primary-pro" style="white-space: nowrap; margin-top: 0;">
+            <i class="bi bi-plus-lg me-1"></i>Agregar
+          </button>
+        </form>
+        <div class="d-flex flex-column gap-2" style="max-height: 360px; overflow-y: auto;">
+          {% for cat in catalogo_evidencias %}
+          <div class="d-flex justify-content-between align-items-center p-2 px-3 bg-white rounded-3 border">
+            <span style="font-size: 0.86rem; font-weight: 600; color: var(--azul-oscuro);">{{ loop.index }}. {{ cat.nombre }}</span>
+            <form action="{{ url_for('eliminar_catalogo_evidencia', cat_id=cat.id) }}" method="POST" onsubmit="return confirm('¿Eliminar «{{ cat.nombre }}» del catálogo base para nuevas clases?');">
+              <button type="submit" class="btn-icon rojo" style="width: 28px; height: 28px; font-size: 0.8rem;" title="Eliminar del catálogo">
+                <i class="bi bi-trash-fill"></i>
+              </button>
+            </form>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    // Llamar a nuestra API interna en Flask
-    fetch("{{ url_for('estadisticas_json') }}")
+    // Llamar a nuestra API interna en Flask respetando el filtro de carrera
+    fetch("{{ url_for('estadisticas_json', carrera=filtro_carrera) }}")
       .then(response => response.json())
       .then(data => {
         

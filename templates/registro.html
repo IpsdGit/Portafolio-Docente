@@ -54,6 +54,17 @@
                  placeholder="ejemplo@unah.edu.hn" required>
           <small style="font-size:.73rem; color:var(--texto-suave);">Debe ser un correo con dominio .edu.hn</small>
         </div>
+        {% if carreras %}
+        <div class="mb-form">
+          <label class="form-label-pro" for="carrera_id">Carrera / Bloque Académico</label>
+          <select id="carrera_id" name="carrera_id" class="form-control-pro" required>
+            <option value="" disabled selected>Selecciona tu carrera...</option>
+            {% for c in carreras %}
+            <option value="{{ c.id }}">{{ c.nombre }}{% if c.facultad %} · {{ c.facultad }}{% endif %}</option>
+            {% endfor %}
+          </select>
+        </div>
+        {% endif %}
         <div class="mb-form">
           <label class="form-label-pro" for="password">Contraseña</label>
           <div style="position:relative;">

@@ -176,6 +176,11 @@
                       <div style="font-size: 0.7rem; color: #064E3B; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px;" title="{{ ev.nombre }}">{{ ev.nombre }}</div>
                       <div class="d-flex gap-1">
                         <a href="{{ ev.url_archivo }}" target="_blank" class="btn-icon" style="background: #ECFDF5; color: #10B981; width: 22px; height: 22px; font-size: 0.7rem;" title="Ver documento"><i class="bi bi-eye-fill"></i></a>
+                        <button type="button" class="btn-icon" style="background: #EFF6FF; color: #2563EB; width: 22px; height: 22px; font-size: 0.7rem;" title="Editar evidencia"
+                                data-id="{{ ev.id }}" data-nombre="{{ ev.nombre }}" data-tipo="{{ ev.tipo_evidencia }}"
+                                onclick="abrirModalEditarEvidencia(this)">
+                          <i class="bi bi-pencil-fill"></i>
+                        </button>
                         <form action="{{ url_for('eliminar_evidencia', clase_id=clase.id, ev_id=ev.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('¿Seguro que deseas eliminar esta evidencia?');">
                           <button type="submit" class="btn-icon" style="background: #FEE2E2; color: #EF4444; width: 22px; height: 22px; font-size: 0.7rem;" title="Eliminar"><i class="bi bi-trash-fill"></i></button>
                         </form>
@@ -402,11 +407,59 @@
   </div>
 </div>
 
+<div class="modal fade" id="modalEditarEvidencia" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content border-0" style="border-radius: 12px; overflow: hidden;">
+      <div class="modal-header" style="background: var(--azul-oscuro); color: white; border: none;">
+        <h5 class="modal-title" style="font-weight: 600;"><i class="bi bi-pencil-square me-2"></i>Editar Evidencia</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="formEditarEvidencia" method="POST" enctype="multipart/form-data">
+        <div class="modal-body p-4" style="background: #F8FAFC;">
+          <div class="mb-form">
+            <label class="form-label-pro">Categoría</label>
+            <select name="tipo_evidencia" id="edit_tipo_evidencia" class="form-control-pro bg-white" required>
+              {% for tipo in tipos_evidencia %}
+              <option value="{{ tipo }}">{{ tipo }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-form">
+            <label class="form-label-pro">Nombre descriptivo del archivo</label>
+            <input type="text" name="nombre_evidencia" id="edit_nombre_evidencia" class="form-control-pro bg-white" required>
+          </div>
+          <div class="mb-form">
+            <label class="form-label-pro">Reemplazar archivo (Opcional)</label>
+            <input type="file" name="evidencia_file" id="edit_archivo_evidencia" class="form-control-pro bg-white p-2" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx">
+            <small class="text-muted" style="font-size: 0.75rem;">Deja este campo vacío si solo deseas cambiar el nombre o categoría y conservar el archivo actual.</small>
+          </div>
+        </div>
+        <div class="modal-footer" style="background: #F8FAFC; border-top: 1px solid var(--borde);">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn-primary-pro" style="width: auto;"><i class="bi bi-save me-1"></i>Guardar Cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <script>
   function abrirModalSubir(tipoEvidencia) {
     const selector = document.getElementById('select_tipo_evidencia');
     selector.value = tipoEvidencia;
     const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalSubirEvidencia'));
+    modal.show();
+  }
+
+  function abrirModalEditarEvidencia(btn) {
+    const evId = btn.getAttribute('data-id');
+    const nombre = btn.getAttribute('data-nombre');
+    const tipo = btn.getAttribute('data-tipo');
+    document.getElementById('formEditarEvidencia').action = `/docente/clases/{{ clase.id }}/evidencia/${evId}/editar`;
+    document.getElementById('edit_nombre_evidencia').value = nombre;
+    document.getElementById('edit_tipo_evidencia').value = tipo;
+    document.getElementById('edit_archivo_evidencia').value = '';
+    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalEditarEvidencia'));
     modal.show();
   }
 </script>

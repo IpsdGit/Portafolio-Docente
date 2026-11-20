@@ -100,6 +100,43 @@ try:
     _conn.commit()
     _conn.close()
 except: pass
+
+# Parche V3: Carreras, cargos de autoridad, catálogo de evidencias y categorías por clase
+try:
+    _conn = sqlite3.connect(DB_PATH)
+    _conn.execute("""
+        CREATE TABLE IF NOT EXISTS Carreras (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nombre TEXT UNIQUE NOT NULL,
+            facultad TEXT DEFAULT ''
+        )
+    """)
+    _conn.execute("""
+        CREATE TABLE IF NOT EXISTS CatalogoEvidencias (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nombre TEXT UNIQUE NOT NULL,
+            activo INTEGER DEFAULT 1
+        )
+    """)
+    _conn.execute("""
+        CREATE TABLE IF NOT EXISTS ClaseTiposEvidencia (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            clase_id INTEGER NOT NULL,
+            nombre TEXT NOT NULL,
+            UNIQUE(clase_id, nombre)
+        )
+    """)
+    _conn.commit()
+    _conn.close()
+except Exception as e: print("Error en parche V3 tablas:", e)
+
+for _col_u in ['carrera_id INTEGER', 'cargo_admin TEXT']:
+    try:
+        _conn = sqlite3.connect(DB_PATH)
+        _conn.execute(f"ALTER TABLE Usuarios ADD COLUMN {_col_u}")
+        _conn.commit()
+        _conn.close()
+    except: pass
 # ------------------------------------------------------------------------
 
 TIPOS_FORMACION = ['Taller', 'Seminario', 'Diplomado', 'Posgrado', 'Congreso', 'Jornada Pedagógica', 'Curso en Línea (MOOC)', 'Práctica Docente', 'Otro']
@@ -107,6 +144,18 @@ TIPOS_EVIDENCIA = ['Planificación Didáctica', 'Material Didáctico', 'Instrume
 NATURALEZA_OPTS   = ['Teórica', 'Práctica', 'Mixta', 'Laboratorio']
 MODALIDAD_OPTS    = ['Presencial', 'Virtual', 'B-learning', 'Teledocencia']
 RESPONSABILIDAD_OPTS = ['Ninguna', 'Jefe de Departamento', 'Coordinador de Carrera', 'Ambas', 'Otros']
+CARGOS_ADMIN_OPTS = ['Jefe de Departamento', 'Coordinador de Carrera']
+
+# Sembrar CatalogoEvidencias con las 12 categorías base si está vacío
+try:
+    _conn = sqlite3.connect(DB_PATH)
+    _cnt = _conn.execute("SELECT COUNT(*) FROM CatalogoEvidencias").fetchone()[0]
+    if _cnt == 0:
+        for _t in TIPOS_EVIDENCIA:
+            _conn.execute("INSERT OR IGNORE INTO CatalogoEvidencias (nombre, activo) VALUES (?, 1)", (_t,))
+        _conn.commit()
+    _conn.close()
+except Exception as e: print("Error sembrando CatalogoEvidencias:", e)
 
 # SOLUCIÓN: Agregamos Word (.doc, .docx) y Excel (.xls, .xlsx) a los permisos
 EXTENSIONES_PERMITIDAS = {'pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx', 'xls', 'xlsx'}
@@ -138,10 +187,75 @@ SUPER_ADMIN_EMAILS = ['bayron@unah.edu.hn', 'admin@unah.edu.hn']
 def es_superadmin():
     return session.get('correo') in SUPER_ADMIN_EMAILS
 
+def obtener_catalogo_evidencias(con, solo_activos=True):
+    if solo_activos:
+        return con.execute("SELECT * FROM CatalogoEvidencias WHERE activo = 1 ORDER BY id ASC").fetchall()
+    return con.execute("SELECT * FROM CatalogoEvidencias ORDER BY id ASC").fetchall()
+
+def obtener_tipos_clase(con, clase_id):
+    filas = con.execute("SELECT nombre FROM ClaseTiposEvidencia WHERE clase_id = ? ORDER BY id ASC", (clase_id,)).fetchall()
+    if not filas:
+        catalogo = obtener_catalogo_evidencias(con, solo_activos=True)
+        nombres_base = [r['nombre'] for r in catalogo] if catalogo else list(TIPOS_EVIDENCIA)
+        for nom in nombres_base:
+            con.execute("INSERT OR IGNORE INTO ClaseTiposEvidencia (clase_id, nombre) VALUES (?, ?)", (clase_id, nom))
+        con.commit()
+        tipos = list(nombres_base)
+    else:
+        tipos = [r['nombre'] for r in filas]
+
+    # Garantizar que si ya existen archivos con algún tipo histórico, no se oculten
+    existentes = con.execute("SELECT DISTINCT tipo_evidencia FROM EvidenciasClase WHERE clase_id = ?", (clase_id,)).fetchall()
+    for ex in existentes:
+        t = ex['tipo_evidencia']
+        if t and t not in tipos:
+            tipos.append(t)
+    return tipos
+
+def obtener_scope_admin(con):
+    if es_superadmin():
+        return {
+            'es_superadmin': True,
+            'carrera_id': None,
+            'carrera_nombre': 'Todas las Carreras',
+            'cargo': 'Super Administrador',
+            'sin_carrera': False
+        }
+    uid = session.get('usuario_id')
+    row = con.execute("""
+        SELECT u.carrera_id, u.cargo_admin, c.nombre AS carrera_nombre
+        FROM Usuarios u
+        LEFT JOIN Carreras c ON u.carrera_id = c.id
+        WHERE u.id = ?
+    """, (uid,)).fetchone()
+    if not row or not row['carrera_id']:
+        return {
+            'es_superadmin': False,
+            'carrera_id': None,
+            'carrera_nombre': 'Sin carrera asignada',
+            'cargo': (row['cargo_admin'] if row and row['cargo_admin'] else 'Administrador'),
+            'sin_carrera': True
+        }
+    return {
+        'es_superadmin': False,
+        'carrera_id': row['carrera_id'],
+        'carrera_nombre': row['carrera_nombre'] or 'Carrera Asignada',
+        'cargo': row['cargo_admin'] or 'Administrador',
+        'sin_carrera': False
+    }
+
+def admin_puede_ver_docente(con, scope, docente_id):
+    if scope['es_superadmin']:
+        return True
+    if scope['sin_carrera']:
+        return False
+    row = con.execute("SELECT carrera_id FROM Usuarios WHERE id = ? AND rol = 'Docente'", (docente_id,)).fetchone()
+    return bool(row and row['carrera_id'] == scope['carrera_id'])
+
 # Inyectar variables globales en los templates
 @app.context_processor
 def inject_superadmin():
-    return dict(es_superadmin=es_superadmin())
+    return dict(es_superadmin=es_superadmin(), super_admin_emails=SUPER_ADMIN_EMAILS)
 
 def subir_a_firebase(archivo, carpeta):
     from werkzeug.utils import secure_filename
@@ -193,6 +307,9 @@ def login():
             flash('Error de conexión.', 'danger')
             return render_template('login.html')
         if usuario and check_password_hash(usuario['password'], password):
+            if 'activo' in usuario.keys() and usuario['activo'] == 0:
+                flash('Tu cuenta se encuentra desactivada. Contacta al administrador.', 'danger')
+                return render_template('login.html')
             session['usuario_id'] = usuario['id']
             session['nombre']     = usuario['nombre']
             session['correo']     = usuario['correo']
@@ -205,33 +322,49 @@ def login():
 
 @app.route('/registro', methods=['GET', 'POST'])
 def registro():
+    try:
+        con = obtener_conexion()
+        carreras = con.execute("SELECT id, nombre, facultad FROM Carreras ORDER BY nombre ASC").fetchall()
+        con.close()
+    except Exception:
+        carreras = []
+
     if request.method == 'POST':
-        nombre    = request.form.get('nombre', '').strip()
-        correo    = request.form.get('correo', '').strip().lower()
-        password  = request.form.get('password', '')
-        password2 = request.form.get('password2', '')
+        nombre     = request.form.get('nombre', '').strip()
+        correo     = request.form.get('correo', '').strip().lower()
+        password   = request.form.get('password', '')
+        password2  = request.form.get('password2', '')
+        carrera_id = request.form.get('carrera_id', '').strip()
+        carrera_val = int(carrera_id) if carrera_id.isdigit() else None
 
         if len(nombre) < 3 or not correo.endswith('.edu.hn') or len(password) < 8 or password != password2:
             flash('Revisa los requisitos del formulario.', 'warning')
-            return render_template('registro.html')
+            return render_template('registro.html', carreras=carreras)
+
+        if carreras and not carrera_val:
+            flash('Por favor selecciona la carrera a la que perteneces.', 'warning')
+            return render_template('registro.html', carreras=carreras)
 
         try:
             con = obtener_conexion()
             if con.execute("SELECT id FROM Usuarios WHERE correo = ?", (correo,)).fetchone():
                 con.close()
                 flash('Este correo ya está registrado.', 'warning')
-                return render_template('registro.html')
+                return render_template('registro.html', carreras=carreras)
             hashed = generate_password_hash(password)
-            con.execute("INSERT INTO Usuarios (nombre, correo, password, rol) VALUES (?, ?, ?, 'Docente')", (nombre, correo, hashed))
+            con.execute(
+                "INSERT INTO Usuarios (nombre, correo, password, rol, activo, carrera_id) VALUES (?, ?, ?, 'Docente', 1, ?)",
+                (nombre, correo, hashed, carrera_val)
+            )
             con.commit()
             con.close()
         except Exception:
             flash('Error al crear la cuenta.', 'danger')
-            return render_template('registro.html')
+            return render_template('registro.html', carreras=carreras)
 
         flash('¡Cuenta creada exitosamente!', 'success')
         return redirect(url_for('login'))
-    return render_template('registro.html')
+    return render_template('registro.html', carreras=carreras)
 
 @app.route('/logout')
 def logout():
@@ -515,14 +648,20 @@ def editar_certificado(doc_id):
 def mis_clases():
     if not requiere_login(rol='Docente'): return redirect(url_for('login'))
     uid = session['usuario_id']
+    clases = []
     try:
         con = obtener_conexion()
-        clases = con.execute("""
+        filas = con.execute("""
             SELECT c.*, (SELECT COUNT(*) FROM EvidenciasClase e WHERE e.clase_id = c.id) AS total_evidencias,
                    (SELECT COUNT(DISTINCT tipo_evidencia) FROM EvidenciasClase e WHERE e.clase_id = c.id) AS tipos_completados,
                    (SELECT COUNT(*) FROM EvidenciasClase e WHERE e.clase_id = c.id AND e.comentario_admin IS NOT NULL AND e.comentario_admin != '' AND IFNULL(e.feedback_leido, 0) = 0) AS notificaciones_nuevas
             FROM MisClases c WHERE c.usuario_id = ? ORDER BY c.fecha_creacion DESC
         """, (uid,)).fetchall()
+        for f in filas:
+            cd = dict(f)
+            tipos_clase = obtener_tipos_clase(con, f['id'])
+            cd['total_tipos_clase'] = len(tipos_clase)
+            clases.append(cd)
         con.close()
     except Exception: clases = []
     return render_template('mis_clases.html', nombre=session['nombre'], clases=clases, total_tipos=len(TIPOS_EVIDENCIA))
@@ -535,7 +674,9 @@ def nueva_clase():
     periodo_anio = request.form.get('periodo_anio', '').strip()
     periodo = f"{periodo_tipo} {periodo_anio}".strip()
     nombre_espacio = request.form.get('nombre_espacio', '').strip()
-    
+    clase_origen_id = request.form.get('clase_origen_id', '').strip()
+    duplicar_evidencias = request.form.get('duplicar_evidencias') == '1'
+
     if not periodo_tipo or not periodo_anio or not nombre_espacio:
         flash('El período, año y nombre del espacio son obligatorios.', 'warning')
         return redirect(url_for('mis_clases'))
@@ -543,11 +684,44 @@ def nueva_clase():
         con = obtener_conexion()
         cur = con.execute("INSERT INTO MisClases (usuario_id, periodo, nombre_espacio, codigo, naturaleza, modalidad, uv_ca) VALUES (?,?,?,?,?,?,?)", 
                           (uid, periodo, nombre_espacio, request.form.get('codigo', '').strip(), request.form.get('naturaleza', ''), request.form.get('modalidad', ''), request.form.get('uv_ca', '').strip()))
+        nueva_id = cur.lastrowid
+
+        origen_valido = None
+        if clase_origen_id.isdigit():
+            origen_valido = con.execute("SELECT id FROM MisClases WHERE id=? AND usuario_id=?", (int(clase_origen_id), uid)).fetchone()
+
+        if origen_valido:
+            # Copiar las categorías configuradas de la clase origen
+            tipos_origen = obtener_tipos_clase(con, origen_valido['id'])
+            for t in tipos_origen:
+                con.execute("INSERT OR IGNORE INTO ClaseTiposEvidencia (clase_id, nombre) VALUES (?, ?)", (nueva_id, t))
+            # Si el docente eligió duplicar archivos de evidencias anteriores
+            if duplicar_evidencias:
+                evs_origen = con.execute("SELECT tipo_evidencia, nombre, url_archivo FROM EvidenciasClase WHERE clase_id=?", (origen_valido['id'],)).fetchall()
+                for ev in evs_origen:
+                    con.execute(
+                        "INSERT INTO EvidenciasClase (clase_id, tipo_evidencia, nombre, url_archivo, estado_evaluacion, comentario_admin, feedback_leido) VALUES (?,?,?,?,'Sin Revisar',NULL,0)",
+                        (nueva_id, ev['tipo_evidencia'], ev['nombre'], ev['url_archivo'])
+                    )
+        else:
+            # Inicializar con el catálogo global activo
+            catalogo = obtener_catalogo_evidencias(con, solo_activos=True)
+            nombres_base = [r['nombre'] for r in catalogo] if catalogo else list(TIPOS_EVIDENCIA)
+            for nom in nombres_base:
+                con.execute("INSERT OR IGNORE INTO ClaseTiposEvidencia (clase_id, nombre) VALUES (?, ?)", (nueva_id, nom))
+
         con.commit()
         con.close()
-        flash('¡Carpeta de clase creada!', 'success')
-        return redirect(url_for('detalle_clase', clase_id=cur.lastrowid))
-    except: flash('Error al crear la clase.', 'danger'); return redirect(url_for('mis_clases'))
+        if origen_valido and duplicar_evidencias:
+            flash('¡Carpeta de clase replicada con sus evidencias anteriores!', 'success')
+        elif origen_valido:
+            flash('¡Carpeta de clase replicada con éxito!', 'success')
+        else:
+            flash('¡Carpeta de clase creada!', 'success')
+        return redirect(url_for('detalle_clase', clase_id=nueva_id))
+    except Exception as e:
+        flash(f'Error al crear la clase: {str(e)}', 'danger')
+        return redirect(url_for('mis_clases'))
 
 @app.route('/docente/clases/<int:clase_id>')
 def detalle_clase(clase_id):
@@ -556,7 +730,10 @@ def detalle_clase(clase_id):
     try:
         con = obtener_conexion()
         clase = con.execute("SELECT * FROM MisClases WHERE id=? AND usuario_id=?", (clase_id, uid)).fetchone()
-        if not clase: return redirect(url_for('mis_clases'))
+        if not clase:
+            con.close()
+            return redirect(url_for('mis_clases'))
+        tipos_clase = obtener_tipos_clase(con, clase_id)
         evidencias = con.execute("SELECT * FROM EvidenciasClase WHERE clase_id=? ORDER BY tipo_evidencia, fecha_registro DESC", (clase_id,)).fetchall()
         reflexiones = con.execute("SELECT * FROM ReflexionesClase WHERE clase_id=? ORDER BY fecha_registro DESC", (clase_id,)).fetchall()
         
@@ -571,7 +748,7 @@ def detalle_clase(clase_id):
         if t not in evidencias_por_tipo: evidencias_por_tipo[t] = []
         evidencias_por_tipo[t].append(ev)
         
-    return render_template('detalle_clase.html', nombre=session['nombre'], clase=clase, evidencias_por_tipo=evidencias_por_tipo, tipos_evidencia=TIPOS_EVIDENCIA, naturaleza_opts=NATURALEZA_OPTS, modalidad_opts=MODALIDAD_OPTS, reflexiones=reflexiones)
+    return render_template('detalle_clase.html', nombre=session['nombre'], clase=clase, evidencias_por_tipo=evidencias_por_tipo, tipos_evidencia=tipos_clase, naturaleza_opts=NATURALEZA_OPTS, modalidad_opts=MODALIDAD_OPTS, reflexiones=reflexiones)
 
 @app.route('/docente/clases/<int:clase_id>/editar', methods=['POST'])
 def editar_clase(clase_id):
@@ -593,6 +770,7 @@ def editar_clase(clase_id):
 @app.route('/docente/clases/<int:clase_id>/evidencia', methods=['POST'])
 def subir_evidencia(clase_id):
     if not requiere_login(rol='Docente'): return redirect(url_for('login'))
+    uid = session['usuario_id']
     archivo = request.files.get('evidencia_file')
     tipo_evidencia = request.form.get('tipo_evidencia', '').strip()
     nombre_evidencia = request.form.get('nombre_evidencia', '').strip()
@@ -607,8 +785,13 @@ def subir_evidencia(clase_id):
         return redirect(url_for('detalle_clase', clase_id=clase_id))
 
     try:
-        url_archivo = subir_a_firebase(archivo, f"clases/clase_{clase_id}")
         con = obtener_conexion()
+        prop = con.execute("SELECT id FROM MisClases WHERE id=? AND usuario_id=?", (clase_id, uid)).fetchone()
+        if not prop:
+            con.close()
+            flash('No tienes permiso para subir evidencias en esta clase.', 'danger')
+            return redirect(url_for('mis_clases'))
+        url_archivo = subir_a_firebase(archivo, f"clases/clase_{clase_id}")
         con.execute("INSERT INTO EvidenciasClase (clase_id, tipo_evidencia, nombre, url_archivo) VALUES (?,?,?,?)", (clase_id, tipo_evidencia, nombre_evidencia, url_archivo))
         con.commit()
         con.close()
@@ -617,15 +800,61 @@ def subir_evidencia(clase_id):
         flash(f'Error al subir evidencia a la nube: {str(e)}', 'danger')
     return redirect(url_for('detalle_clase', clase_id=clase_id))
 
+@app.route('/docente/clases/<int:clase_id>/evidencia/<int:ev_id>/editar', methods=['POST'])
+def editar_evidencia(clase_id, ev_id):
+    if not requiere_login(rol='Docente'): return redirect(url_for('login'))
+    uid = session['usuario_id']
+    nombre_evidencia = request.form.get('nombre_evidencia', '').strip()
+    tipo_evidencia = request.form.get('tipo_evidencia', '').strip()
+    archivo = request.files.get('evidencia_file')
+
+    if not nombre_evidencia or not tipo_evidencia:
+        flash('El nombre y la categoría de la evidencia son obligatorios.', 'warning')
+        return redirect(url_for('detalle_clase', clase_id=clase_id))
+
+    try:
+        con = obtener_conexion()
+        ev = con.execute("""
+            SELECT e.* FROM EvidenciasClase e
+            JOIN MisClases c ON e.clase_id = c.id
+            WHERE e.id = ? AND e.clase_id = ? AND c.usuario_id = ?
+        """, (ev_id, clase_id, uid)).fetchone()
+        if not ev:
+            con.close()
+            flash('No tienes permiso para editar esta evidencia.', 'danger')
+            return redirect(url_for('detalle_clase', clase_id=clase_id))
+
+        url_archivo = ev['url_archivo']
+        if archivo and archivo.filename != '':
+            if not extension_permitida(archivo.filename):
+                con.close()
+                flash('Formato no permitido para evidencias. Solo PDF, Word, Excel, JPG o PNG.', 'danger')
+                return redirect(url_for('detalle_clase', clase_id=clase_id))
+            url_archivo = subir_a_firebase(archivo, f"clases/clase_{clase_id}")
+
+        con.execute(
+            "UPDATE EvidenciasClase SET nombre=?, tipo_evidencia=?, url_archivo=? WHERE id=? AND clase_id=?",
+            (nombre_evidencia, tipo_evidencia, url_archivo, ev_id, clase_id)
+        )
+        con.commit()
+        con.close()
+        flash('¡Evidencia actualizada correctamente!', 'success')
+    except Exception as e:
+        flash(f'Error al actualizar la evidencia: {str(e)}', 'danger')
+    return redirect(url_for('detalle_clase', clase_id=clase_id))
+
 @app.route('/docente/clases/<int:clase_id>/evidencia/<int:ev_id>/eliminar', methods=['POST'])
 def eliminar_evidencia(clase_id, ev_id):
     if not requiere_login(rol='Docente'): return redirect(url_for('login'))
+    uid = session['usuario_id']
     try:
         con = obtener_conexion()
-        con.execute("DELETE FROM EvidenciasClase WHERE id=? AND clase_id=?", (ev_id, clase_id))
-        con.commit()
+        prop = con.execute("SELECT id FROM MisClases WHERE id=? AND usuario_id=?", (clase_id, uid)).fetchone()
+        if prop:
+            con.execute("DELETE FROM EvidenciasClase WHERE id=? AND clase_id=?", (ev_id, clase_id))
+            con.commit()
+            flash('Evidencia eliminada.', 'info')
         con.close()
-        flash('Evidencia eliminada.', 'info')
     except: flash('Error al eliminar.', 'danger')
     return redirect(url_for('detalle_clase', clase_id=clase_id))
 
@@ -684,13 +913,50 @@ def panel_admin():
     if not requiere_login(rol='Administrador'): return redirect(url_for('login'))
     filtro_estado = request.args.get('estado', 'Todos')
     filtro_docente = request.args.get('docente', '').strip().lower()
+    filtro_carrera_raw = request.args.get('carrera', 'Todas').strip()
+    scope = None
+    carreras = []
+    catalogo_evidencias = []
     try:
         con = obtener_conexion()
-        query = "SELECT d.*, u.nombre AS nombre_docente, u.id AS usuario_id, p.foto_url FROM Documentos d JOIN Usuarios u ON d.usuario_id = u.id LEFT JOIN PerfilDocente p ON u.id = p.usuario_id"
-        params, conds = [], []
-        if filtro_estado != 'Todos': conds.append("d.estado = ?"); params.append(filtro_estado)
-        if filtro_docente: conds.append("LOWER(u.nombre) LIKE ?"); params.append(f'%{filtro_docente}%')
-        if conds: query += " WHERE " + " AND ".join(conds)
+        scope = obtener_scope_admin(con)
+        carreras = con.execute("SELECT id, nombre, facultad FROM Carreras ORDER BY nombre ASC").fetchall()
+        catalogo_evidencias = obtener_catalogo_evidencias(con, solo_activos=True)
+
+        # Determinar carrera efectiva de filtrado
+        carrera_filtrada_id = None
+        if not scope['es_superadmin']:
+            if scope['sin_carrera']:
+                con.close()
+                kpis_vacio = {'total_docentes': 0, 'total_docs': 0, 'pendientes': 0, 'aprobados': 0, 'horas_aprobadas': 0}
+                return render_template('panel_admin.html', nombre=session['nombre'], documentos=[], kpis=kpis_vacio,
+                                       docentes_agrupados=[], filtro_estado=filtro_estado, filtro_docente=filtro_docente,
+                                       filtro_carrera='Todas', carreras=carreras, scope_admin=scope,
+                                       catalogo_evidencias=catalogo_evidencias)
+            carrera_filtrada_id = scope['carrera_id']
+        elif filtro_carrera_raw.isdigit():
+            carrera_filtrada_id = int(filtro_carrera_raw)
+
+        query = """
+            SELECT d.*, u.nombre AS nombre_docente, u.id AS usuario_id, u.carrera_id,
+                   c.nombre AS nombre_carrera, p.foto_url
+            FROM Documentos d
+            JOIN Usuarios u ON d.usuario_id = u.id
+            LEFT JOIN Carreras c ON u.carrera_id = c.id
+            LEFT JOIN PerfilDocente p ON u.id = p.usuario_id
+        """
+        params, conds = [], ["u.rol = 'Docente'"]
+        if carrera_filtrada_id is not None:
+            conds.append("u.carrera_id = ?")
+            params.append(carrera_filtrada_id)
+        if filtro_estado != 'Todos':
+            conds.append("d.estado = ?")
+            params.append(filtro_estado)
+        if filtro_docente:
+            conds.append("LOWER(u.nombre) LIKE ?")
+            params.append(f'%{filtro_docente}%')
+        if conds:
+            query += " WHERE " + " AND ".join(conds)
         query += " ORDER BY d.id DESC"
         documentos = con.execute(query, params).fetchall()
         
@@ -701,6 +967,7 @@ def panel_admin():
                 docentes_resumen[uid] = {
                     'usuario_id': uid,
                     'nombre_docente': doc['nombre_docente'],
+                    'nombre_carrera': doc['nombre_carrera'],
                     'foto_url': doc['foto_url'],
                     'total_docs': 0,
                     'pendientes': 0,
@@ -715,14 +982,27 @@ def panel_admin():
                 docentes_resumen[uid]['aprobados'] += 1
             docentes_resumen[uid]['documentos'].append(doc)
 
-        # Incluir docentes que no tienen documentos pero sí pueden tener clases
-        todos_docentes = con.execute("SELECT u.id, u.nombre, p.foto_url FROM Usuarios u LEFT JOIN PerfilDocente p ON u.id = p.usuario_id WHERE u.rol = 'Docente' ORDER BY u.nombre").fetchall()
+        # Incluir docentes que no tienen documentos pero sí pueden tener clases (respetando la carrera)
+        doc_query = """
+            SELECT u.id, u.nombre, c.nombre AS nombre_carrera, p.foto_url
+            FROM Usuarios u
+            LEFT JOIN Carreras c ON u.carrera_id = c.id
+            LEFT JOIN PerfilDocente p ON u.id = p.usuario_id
+            WHERE u.rol = 'Docente'
+        """
+        doc_params = []
+        if carrera_filtrada_id is not None:
+            doc_query += " AND u.carrera_id = ?"
+            doc_params.append(carrera_filtrada_id)
+        doc_query += " ORDER BY u.nombre"
+        todos_docentes = con.execute(doc_query, doc_params).fetchall()
         for td in todos_docentes:
             if td['id'] not in docentes_resumen:
                 if not filtro_docente or filtro_docente in td['nombre'].lower():
                     docentes_resumen[td['id']] = {
                         'usuario_id': td['id'],
                         'nombre_docente': td['nombre'],
+                        'nombre_carrera': td['nombre_carrera'],
                         'foto_url': td['foto_url'],
                         'total_docs': 0,
                         'pendientes': 0,
@@ -744,16 +1024,41 @@ def panel_admin():
 
         docentes_agrupados = sorted(docentes_resumen.values(), key=lambda x: (-x['pendientes'], x['nombre_docente']))
         
-        kpis = con.execute("SELECT (SELECT COUNT(DISTINCT id) FROM Usuarios WHERE rol = 'Docente') AS total_docentes, COUNT(*) AS total_docs, COALESCE(SUM(CASE WHEN estado='Pendiente' THEN 1 ELSE 0 END), 0) AS pendientes, COALESCE(SUM(CASE WHEN estado='Aprobado' THEN 1 ELSE 0 END), 0) AS aprobados, COALESCE(SUM(CASE WHEN estado='Aprobado' THEN horas ELSE 0 END), 0) AS horas_aprobadas FROM Documentos").fetchone()
+        if carrera_filtrada_id is not None:
+            kpis = con.execute("""
+                SELECT
+                    (SELECT COUNT(DISTINCT id) FROM Usuarios WHERE rol = 'Docente' AND carrera_id = ?) AS total_docentes,
+                    COUNT(d.id) AS total_docs,
+                    COALESCE(SUM(CASE WHEN d.estado='Pendiente' THEN 1 ELSE 0 END), 0) AS pendientes,
+                    COALESCE(SUM(CASE WHEN d.estado='Aprobado' THEN 1 ELSE 0 END), 0) AS aprobados,
+                    COALESCE(SUM(CASE WHEN d.estado='Aprobado' THEN d.horas ELSE 0 END), 0) AS horas_aprobadas
+                FROM Documentos d
+                JOIN Usuarios u ON d.usuario_id = u.id
+                WHERE u.rol = 'Docente' AND u.carrera_id = ?
+            """, (carrera_filtrada_id, carrera_filtrada_id)).fetchone()
+        else:
+            kpis = con.execute("SELECT (SELECT COUNT(DISTINCT id) FROM Usuarios WHERE rol = 'Docente') AS total_docentes, COUNT(*) AS total_docs, COALESCE(SUM(CASE WHEN estado='Pendiente' THEN 1 ELSE 0 END), 0) AS pendientes, COALESCE(SUM(CASE WHEN estado='Aprobado' THEN 1 ELSE 0 END), 0) AS aprobados, COALESCE(SUM(CASE WHEN estado='Aprobado' THEN horas ELSE 0 END), 0) AS horas_aprobadas FROM Documentos").fetchone()
         con.close()
-    except: documentos, kpis, docentes_agrupados = [], None, []
-    return render_template('panel_admin.html', nombre=session['nombre'], documentos=documentos, kpis=kpis, docentes_agrupados=docentes_agrupados, filtro_estado=filtro_estado, filtro_docente=filtro_docente)
+    except Exception:
+        documentos, kpis, docentes_agrupados = [], None, []
+        if scope is None:
+            scope = {'es_superadmin': es_superadmin(), 'carrera_id': None, 'carrera_nombre': '', 'cargo': 'Administrador', 'sin_carrera': False}
+    return render_template('panel_admin.html', nombre=session['nombre'], documentos=documentos, kpis=kpis,
+                           docentes_agrupados=docentes_agrupados, filtro_estado=filtro_estado,
+                           filtro_docente=filtro_docente, filtro_carrera=filtro_carrera_raw,
+                           carreras=carreras, scope_admin=scope, catalogo_evidencias=catalogo_evidencias)
 
 @app.route('/actualizar_estado/<int:doc_id>', methods=['POST'])
 def actualizar_estado(doc_id):
     if not requiere_login(rol='Administrador'): return redirect(url_for('login'))
     try:
         con = obtener_conexion()
+        scope = obtener_scope_admin(con)
+        doc = con.execute("SELECT usuario_id FROM Documentos WHERE id = ?", (doc_id,)).fetchone()
+        if not doc or not admin_puede_ver_docente(con, scope, doc['usuario_id']):
+            con.close()
+            flash('No tienes permiso para evaluar documentos fuera de tu carrera.', 'danger')
+            return redirect(url_for('panel_admin'))
         con.execute("UPDATE Documentos SET estado = ?, comentario_admin = ? WHERE id = ?", (request.form.get('estado'), request.form.get('comentario', '').strip(), doc_id))
         con.commit()
         con.close()
@@ -766,8 +1071,13 @@ def evaluar_evidencia(ev_id):
     if not requiere_login(rol='Administrador'): return redirect(url_for('login'))
     try:
         con = obtener_conexion()
+        scope = obtener_scope_admin(con)
         ev = con.execute("SELECT c.usuario_id FROM EvidenciasClase e JOIN MisClases c ON e.clase_id = c.id WHERE e.id = ?", (ev_id,)).fetchone()
         if ev:
+            if not admin_puede_ver_docente(con, scope, ev['usuario_id']):
+                con.close()
+                flash('No tienes permiso para evaluar evidencias de docentes fuera de tu carrera.', 'danger')
+                return redirect(url_for('panel_admin'))
             con.execute("UPDATE EvidenciasClase SET estado_evaluacion=?, comentario_admin=?, feedback_leido=0 WHERE id=?", (request.form.get('estado_evaluacion', 'Sin Revisar'), request.form.get('comentario_admin', '').strip(), ev_id))
             con.commit()
             flash('Feedback enviado.', 'success')
@@ -778,36 +1088,175 @@ def evaluar_evidencia(ev_id):
     except: flash('Error al guardar.', 'danger')
     return redirect(url_for('panel_admin'))
 
-@app.route('/admin/exportar_csv')
-def exportar_csv():
+@app.route('/admin/catalogo_evidencias/agregar', methods=['POST'])
+def agregar_catalogo_evidencia():
+    if not requiere_login(rol='Administrador'): return redirect(url_for('login'))
+    nombre_cat = request.form.get('nombre_categoria', '').strip()
+    if not nombre_cat:
+        flash('Debes ingresar un nombre para la categoría de evidencia.', 'warning')
+        return redirect(request.referrer or url_for('panel_admin'))
+    try:
+        con = obtener_conexion()
+        existente = con.execute("SELECT id, activo FROM CatalogoEvidencias WHERE LOWER(nombre) = LOWER(?)", (nombre_cat,)).fetchone()
+        if existente:
+            con.execute("UPDATE CatalogoEvidencias SET activo = 1 WHERE id = ?", (existente['id'],))
+            flash(f'La categoría "{nombre_cat}" ya existía y fue activada en el catálogo.', 'info')
+        else:
+            con.execute("INSERT INTO CatalogoEvidencias (nombre, activo) VALUES (?, 1)", (nombre_cat,))
+            flash(f'Categoría "{nombre_cat}" agregada al catálogo general de evidencias.', 'success')
+        con.commit()
+        con.close()
+    except Exception as e:
+        flash(f'Error al agregar categoría: {str(e)}', 'danger')
+    return redirect(request.referrer or url_for('panel_admin'))
+
+@app.route('/admin/catalogo_evidencias/<int:cat_id>/eliminar', methods=['POST'])
+def eliminar_catalogo_evidencia(cat_id):
     if not requiere_login(rol='Administrador'): return redirect(url_for('login'))
     try:
         con = obtener_conexion()
-        filas = con.execute("""
-            SELECT u.nombre, u.correo, d.nombre_actividad, d.tipo_formacion,
+        cat = con.execute("SELECT nombre FROM CatalogoEvidencias WHERE id = ?", (cat_id,)).fetchone()
+        if cat:
+            con.execute("DELETE FROM CatalogoEvidencias WHERE id = ?", (cat_id,))
+            con.commit()
+            flash(f'Categoría "{cat["nombre"]}" eliminada del catálogo base (las clases ya creadas conservan sus archivos).', 'info')
+        con.close()
+    except Exception as e:
+        flash(f'Error al eliminar categoría: {str(e)}', 'danger')
+    return redirect(request.referrer or url_for('panel_admin'))
+
+@app.route('/admin/clase/<int:clase_id>/tipo_evidencia/agregar', methods=['POST'])
+def agregar_tipo_evidencia_clase(clase_id):
+    if not requiere_login(rol='Administrador'): return redirect(url_for('login'))
+    nombre_tipo = request.form.get('nombre_tipo', '').strip()
+    if not nombre_tipo:
+        flash('Indica el nombre de la categoría de evidencia a agregar.', 'warning')
+        return redirect(request.referrer or url_for('panel_admin'))
+    try:
+        con = obtener_conexion()
+        scope = obtener_scope_admin(con)
+        clase = con.execute("SELECT id, usuario_id FROM MisClases WHERE id = ?", (clase_id,)).fetchone()
+        if not clase or not admin_puede_ver_docente(con, scope, clase['usuario_id']):
+            con.close()
+            flash('No tienes permiso para modificar esta clase.', 'danger')
+            return redirect(url_for('panel_admin'))
+        # Asegurar que los tipos actuales estén inicializados antes de agregar
+        obtener_tipos_clase(con, clase_id)
+        con.execute("INSERT OR IGNORE INTO ClaseTiposEvidencia (clase_id, nombre) VALUES (?, ?)", (clase_id, nombre_tipo))
+        con.commit()
+        uid = clase['usuario_id']
+        con.close()
+        flash(f'Categoría "{nombre_tipo}" agregada a esta clase.', 'success')
+        return redirect(url_for('expediente_docente', docente_id=uid))
+    except Exception as e:
+        flash(f'Error al agregar categoría a la clase: {str(e)}', 'danger')
+    return redirect(request.referrer or url_for('panel_admin'))
+
+@app.route('/admin/clase/<int:clase_id>/tipo_evidencia/eliminar', methods=['POST'])
+def eliminar_tipo_evidencia_clase(clase_id):
+    if not requiere_login(rol='Administrador'): return redirect(url_for('login'))
+    nombre_tipo = request.form.get('nombre_tipo', '').strip()
+    try:
+        con = obtener_conexion()
+        scope = obtener_scope_admin(con)
+        clase = con.execute("SELECT id, usuario_id FROM MisClases WHERE id = ?", (clase_id,)).fetchone()
+        if not clase or not admin_puede_ver_docente(con, scope, clase['usuario_id']):
+            con.close()
+            flash('No tienes permiso para modificar esta clase.', 'danger')
+            return redirect(url_for('panel_admin'))
+        obtener_tipos_clase(con, clase_id)
+        tiene_archivos = con.execute("SELECT COUNT(*) FROM EvidenciasClase WHERE clase_id = ? AND tipo_evidencia = ?", (clase_id, nombre_tipo)).fetchone()[0]
+        uid = clase['usuario_id']
+        if tiene_archivos > 0:
+            con.close()
+            flash(f'No se puede quitar "{nombre_tipo}" porque ya tiene {tiene_archivos} evidencia(s) subida(s) en esta clase.', 'warning')
+            return redirect(url_for('expediente_docente', docente_id=uid))
+        con.execute("DELETE FROM ClaseTiposEvidencia WHERE clase_id = ? AND nombre = ?", (clase_id, nombre_tipo))
+        con.commit()
+        con.close()
+        flash(f'Categoría "{nombre_tipo}" retirada de esta clase.', 'info')
+        return redirect(url_for('expediente_docente', docente_id=uid))
+    except Exception as e:
+        flash(f'Error al quitar categoría: {str(e)}', 'danger')
+    return redirect(request.referrer or url_for('panel_admin'))
+
+@app.route('/admin/exportar_csv')
+def exportar_csv():
+    if not requiere_login(rol='Administrador'): return redirect(url_for('login'))
+    filtro_carrera_raw = request.args.get('carrera', 'Todas').strip()
+    try:
+        con = obtener_conexion()
+        scope = obtener_scope_admin(con)
+        carrera_filtrada_id = None
+        if not scope['es_superadmin']:
+            if scope['sin_carrera']:
+                con.close()
+                flash('No tienes una carrera asignada para exportar datos.', 'warning')
+                return redirect(url_for('panel_admin'))
+            carrera_filtrada_id = scope['carrera_id']
+        elif filtro_carrera_raw.isdigit():
+            carrera_filtrada_id = int(filtro_carrera_raw)
+
+        sql = """
+            SELECT u.nombre, u.correo, IFNULL(c.nombre, 'Sin carrera'), d.nombre_actividad, d.tipo_formacion,
                    d.institucion, d.fecha_emision, d.horas, d.estado,
                    d.comentario_admin, d.fecha_registro, d.url_archivo
             FROM Documentos d
             JOIN Usuarios u ON d.usuario_id = u.id
-            ORDER BY u.nombre, d.fecha_registro DESC
-        """).fetchall()
+            LEFT JOIN Carreras c ON u.carrera_id = c.id
+            WHERE u.rol = 'Docente'
+        """
+        params = []
+        if carrera_filtrada_id is not None:
+            sql += " AND u.carrera_id = ?"
+            params.append(carrera_filtrada_id)
+        sql += " ORDER BY u.nombre, d.fecha_registro DESC"
+        filas = con.execute(sql, params).fetchall()
         con.close()
     except Exception:
         flash('Error al generar el reporte.', 'danger')
         return redirect(url_for('panel_admin'))
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(['Docente', 'Correo', 'Actividad', 'Tipo de Formación', 'Institución', 'Fecha Emisión', 'Horas', 'Estado', 'Comentario Admin', 'Fecha Registro', 'URL Archivo'])
+    writer.writerow(['Docente', 'Correo', 'Carrera', 'Actividad', 'Tipo de Formación', 'Institución', 'Fecha Emisión', 'Horas', 'Estado', 'Comentario Admin', 'Fecha Registro', 'URL Archivo'])
     for fila in filas: writer.writerow(list(fila))
     return Response(output.getvalue(), mimetype='text/csv', headers={'Content-Disposition': f'attachment; filename=portafolio_docente_{datetime.now().strftime("%Y%m%d")}.csv'})
 
 @app.route('/admin/estadisticas')
 def estadisticas_json():
     if not requiere_login(rol='Administrador'): return jsonify({'error': 'No autorizado'}), 401
+    filtro_carrera_raw = request.args.get('carrera', 'Todas').strip()
     try:
         con = obtener_conexion()
-        por_tipo = con.execute("SELECT tipo_formacion, COUNT(*) AS cantidad, SUM(horas) AS total_horas FROM Documentos WHERE estado='Aprobado' GROUP BY tipo_formacion ORDER BY total_horas DESC").fetchall()
-        por_docente = con.execute("SELECT u.nombre, COUNT(d.id) AS documentos, COALESCE(SUM(CASE WHEN d.estado='Aprobado' THEN d.horas ELSE 0 END), 0) AS horas FROM Usuarios u LEFT JOIN Documentos d ON u.id = d.usuario_id WHERE u.rol = 'Docente' GROUP BY u.id ORDER BY horas DESC LIMIT 10").fetchall()
+        scope = obtener_scope_admin(con)
+        carrera_filtrada_id = None
+        if not scope['es_superadmin']:
+            if scope['sin_carrera']:
+                con.close()
+                return jsonify({'por_tipo': [], 'por_docente': []})
+            carrera_filtrada_id = scope['carrera_id']
+        elif filtro_carrera_raw.isdigit():
+            carrera_filtrada_id = int(filtro_carrera_raw)
+
+        if carrera_filtrada_id is not None:
+            por_tipo = con.execute("""
+                SELECT d.tipo_formacion, COUNT(*) AS cantidad, SUM(d.horas) AS total_horas
+                FROM Documentos d
+                JOIN Usuarios u ON d.usuario_id = u.id
+                WHERE d.estado='Aprobado' AND u.rol='Docente' AND u.carrera_id = ?
+                GROUP BY d.tipo_formacion ORDER BY total_horas DESC
+            """, (carrera_filtrada_id,)).fetchall()
+            por_docente = con.execute("""
+                SELECT u.nombre, COUNT(d.id) AS documentos,
+                       COALESCE(SUM(CASE WHEN d.estado='Aprobado' THEN d.horas ELSE 0 END), 0) AS horas
+                FROM Usuarios u
+                LEFT JOIN Documentos d ON u.id = d.usuario_id
+                WHERE u.rol = 'Docente' AND u.carrera_id = ?
+                GROUP BY u.id ORDER BY horas DESC LIMIT 10
+            """, (carrera_filtrada_id,)).fetchall()
+        else:
+            por_tipo = con.execute("SELECT tipo_formacion, COUNT(*) AS cantidad, SUM(horas) AS total_horas FROM Documentos WHERE estado='Aprobado' GROUP BY tipo_formacion ORDER BY total_horas DESC").fetchall()
+            por_docente = con.execute("SELECT u.nombre, COUNT(d.id) AS documentos, COALESCE(SUM(CASE WHEN d.estado='Aprobado' THEN d.horas ELSE 0 END), 0) AS horas FROM Usuarios u LEFT JOIN Documentos d ON u.id = d.usuario_id WHERE u.rol = 'Docente' GROUP BY u.id ORDER BY horas DESC LIMIT 10").fetchall()
         con.close()
         return jsonify({'por_tipo': [dict(r) for r in por_tipo], 'por_docente': [dict(r) for r in por_docente]})
     except Exception as e: return jsonify({'error': str(e)}), 500
@@ -817,24 +1266,44 @@ def expediente_docente(docente_id):
     if not requiere_login(rol='Administrador'): return redirect(url_for('login'))
     try:
         con = obtener_conexion()
-        docente = con.execute("SELECT u.id, u.nombre, u.correo, p.curriculum, p.facultad, p.departamento, p.filosofia_ensenanza, p.foto_url, p.cv_url, p.redes_sociales, p.premios, p.premios_url, p.responsabilidad, p.filosofia_url FROM Usuarios u LEFT JOIN PerfilDocente p ON u.id = p.usuario_id WHERE u.id = ? AND u.rol = 'Docente'", (docente_id,)).fetchone()
-        if not docente: return redirect(url_for('panel_admin'))
+        scope = obtener_scope_admin(con)
+        if not admin_puede_ver_docente(con, scope, docente_id):
+            con.close()
+            flash('No tienes permiso para ver expedientes de docentes de otra carrera.', 'danger')
+            return redirect(url_for('panel_admin'))
+        docente = con.execute("""
+            SELECT u.id, u.nombre, u.correo, c.nombre AS nombre_carrera,
+                   p.curriculum, p.facultad, p.departamento, p.filosofia_ensenanza,
+                   p.foto_url, p.cv_url, p.redes_sociales, p.premios, p.premios_url,
+                   p.responsabilidad, p.filosofia_url
+            FROM Usuarios u
+            LEFT JOIN Carreras c ON u.carrera_id = c.id
+            LEFT JOIN PerfilDocente p ON u.id = p.usuario_id
+            WHERE u.id = ? AND u.rol = 'Docente'
+        """, (docente_id,)).fetchone()
+        if not docente:
+            con.close()
+            return redirect(url_for('panel_admin'))
         titulos = con.execute("SELECT * FROM TitulosDocente WHERE usuario_id=? ORDER BY id ASC", (docente_id,)).fetchall()
         certificados = con.execute("SELECT * FROM Documentos WHERE usuario_id = ? ORDER BY id DESC", (docente_id,)).fetchall()
         clases_db = con.execute("SELECT * FROM MisClases WHERE usuario_id = ? ORDER BY fecha_creacion DESC", (docente_id,)).fetchall()
+        catalogo_evidencias = obtener_catalogo_evidencias(con, solo_activos=True)
         clases = []
         for c in clases_db:
             cd = dict(c)
+            cd['tipos_evidencia'] = obtener_tipos_clase(con, c['id'])
             cd['evidencias'] = con.execute("SELECT * FROM EvidenciasClase WHERE clase_id = ? ORDER BY id DESC", (c['id'],)).fetchall()
             cd['reflexiones'] = con.execute("SELECT * FROM ReflexionesClase WHERE clase_id = ? ORDER BY fecha_registro DESC", (c['id'],)).fetchall()
             clases.append(cd)
         con.close()
         horas_totales = sum(int(c['horas']) for c in certificados if c['estado'] == 'Aprobado')
-        return render_template('expediente_admin.html', nombre=session['nombre'], docente=docente, titulos=titulos, certificados=certificados, clases=clases, horas_totales=horas_totales)
+        return render_template('expediente_admin.html', nombre=session['nombre'], docente=docente, titulos=titulos,
+                               certificados=certificados, clases=clases, horas_totales=horas_totales,
+                               catalogo_evidencias=catalogo_evidencias)
     except: return redirect(url_for('panel_admin'))
 
 # ─────────────────────────────────────────────
-#  MÓDULO: GESTIÓN DE USUARIOS (ADMIN)
+#  MÓDULO: GESTIÓN DE USUARIOS Y CARRERAS (SUPER ADMIN)
 # ─────────────────────────────────────────────
 @app.route('/admin/usuarios')
 def admin_usuarios():
@@ -845,33 +1314,151 @@ def admin_usuarios():
         
     try:
         con = obtener_conexion()
+        carreras_raw = con.execute("SELECT id, nombre, facultad FROM Carreras ORDER BY nombre ASC").fetchall()
+        carreras = []
+        for c in carreras_raw:
+            cd = dict(c)
+            cd['total_docentes'] = con.execute("SELECT COUNT(*) FROM Usuarios WHERE rol='Docente' AND carrera_id=?", (c['id'],)).fetchone()[0]
+            jefe = con.execute("SELECT nombre FROM Usuarios WHERE rol='Administrador' AND carrera_id=? AND cargo_admin='Jefe de Departamento' AND IFNULL(activo,1)=1", (c['id'],)).fetchone()
+            coord = con.execute("SELECT nombre FROM Usuarios WHERE rol='Administrador' AND carrera_id=? AND cargo_admin='Coordinador de Carrera' AND IFNULL(activo,1)=1", (c['id'],)).fetchone()
+            cd['jefe_nombre'] = jefe['nombre'] if jefe else None
+            cd['coord_nombre'] = coord['nombre'] if coord else None
+            carreras.append(cd)
+
         docentes = con.execute("""
-            SELECT u.id, u.nombre, u.correo, u.activo,
+            SELECT u.id, u.nombre, u.correo, u.activo, u.carrera_id,
+                   c.nombre AS nombre_carrera,
                    (SELECT COUNT(*) FROM Documentos d WHERE d.usuario_id = u.id) AS total_certs,
                    (SELECT COUNT(*) FROM Documentos d WHERE d.usuario_id = u.id AND d.estado = 'Aprobado') AS certs_aprobados
             FROM Usuarios u
+            LEFT JOIN Carreras c ON u.carrera_id = c.id
             WHERE u.rol = 'Docente'
             ORDER BY u.nombre ASC
         """).fetchall()
         admins = con.execute("""
-            SELECT id, nombre, correo, activo FROM Usuarios
-            WHERE rol = 'Administrador'
-            ORDER BY nombre ASC
+            SELECT u.id, u.nombre, u.correo, u.activo, u.carrera_id, u.cargo_admin,
+                   c.nombre AS nombre_carrera
+            FROM Usuarios u
+            LEFT JOIN Carreras c ON u.carrera_id = c.id
+            WHERE u.rol = 'Administrador'
+            ORDER BY u.nombre ASC
         """).fetchall()
         todos_docentes_para_promover = con.execute("""
-            SELECT id, nombre, correo FROM Usuarios
+            SELECT id, nombre, correo, carrera_id FROM Usuarios
             WHERE rol = 'Docente'
             ORDER BY nombre ASC
         """).fetchall()
+        catalogo_evidencias = obtener_catalogo_evidencias(con, solo_activos=True)
         con.close()
     except Exception as e:
         flash(f'Error al cargar usuarios: {str(e)}', 'danger')
-        docentes, admins, todos_docentes_para_promover = [], [], []
+        docentes, admins, todos_docentes_para_promover, carreras, catalogo_evidencias = [], [], [], [], []
     return render_template('admin_usuarios.html',
                            nombre=session['nombre'],
                            docentes=docentes,
                            admins=admins,
-                           todos_docentes=todos_docentes_para_promover)
+                           todos_docentes=todos_docentes_para_promover,
+                           carreras=carreras,
+                           cargos_admin_opts=CARGOS_ADMIN_OPTS,
+                           catalogo_evidencias=catalogo_evidencias)
+
+@app.route('/admin/carreras/crear', methods=['POST'])
+def crear_carrera():
+    if not requiere_login(rol='Administrador') or not es_superadmin():
+        return redirect(url_for('panel_admin'))
+    nombre = request.form.get('nombre', '').strip()
+    facultad = request.form.get('facultad', '').strip()
+    if len(nombre) < 2:
+        flash('El nombre de la carrera es obligatorio.', 'warning')
+        return redirect(url_for('admin_usuarios') + '#carreras')
+    try:
+        con = obtener_conexion()
+        con.execute("INSERT INTO Carreras (nombre, facultad) VALUES (?, ?)", (nombre, facultad))
+        con.commit()
+        con.close()
+        flash(f'Carrera "{nombre}" creada correctamente.', 'success')
+    except sqlite3.IntegrityError:
+        flash(f'La carrera "{nombre}" ya existe.', 'warning')
+    except Exception as e:
+        flash(f'Error al crear la carrera: {str(e)}', 'danger')
+    return redirect(url_for('admin_usuarios') + '#carreras')
+
+@app.route('/admin/carreras/<int:cid>/editar', methods=['POST'])
+def editar_carrera(cid):
+    if not requiere_login(rol='Administrador') or not es_superadmin():
+        return redirect(url_for('panel_admin'))
+    nombre = request.form.get('nombre', '').strip()
+    facultad = request.form.get('facultad', '').strip()
+    if len(nombre) < 2:
+        flash('El nombre de la carrera no puede estar vacío.', 'warning')
+        return redirect(url_for('admin_usuarios') + '#carreras')
+    try:
+        con = obtener_conexion()
+        con.execute("UPDATE Carreras SET nombre = ?, facultad = ? WHERE id = ?", (nombre, facultad, cid))
+        con.commit()
+        con.close()
+        flash('Carrera actualizada.', 'success')
+    except Exception as e:
+        flash(f'Error al actualizar carrera: {str(e)}', 'danger')
+    return redirect(url_for('admin_usuarios') + '#carreras')
+
+@app.route('/admin/carreras/<int:cid>/eliminar', methods=['POST'])
+def eliminar_carrera(cid):
+    if not requiere_login(rol='Administrador') or not es_superadmin():
+        return redirect(url_for('panel_admin'))
+    try:
+        con = obtener_conexion()
+        con.execute("UPDATE Usuarios SET carrera_id = NULL WHERE carrera_id = ?", (cid,))
+        con.execute("DELETE FROM Carreras WHERE id = ?", (cid,))
+        con.commit()
+        con.close()
+        flash('Carrera eliminada. Los usuarios asociados quedaron sin carrera asignada.', 'info')
+    except Exception as e:
+        flash(f'Error al eliminar carrera: {str(e)}', 'danger')
+    return redirect(url_for('admin_usuarios') + '#carreras')
+
+@app.route('/admin/usuarios/<int:uid>/asignar_carrera', methods=['POST'])
+def asignar_carrera_usuario(uid):
+    if not requiere_login(rol='Administrador') or not es_superadmin():
+        return redirect(url_for('panel_admin'))
+    carrera_raw = request.form.get('carrera_id', '').strip()
+    carrera_val = int(carrera_raw) if carrera_raw.isdigit() else None
+    cargo_admin = request.form.get('cargo_admin', '').strip()
+    try:
+        con = obtener_conexion()
+        u = con.execute("SELECT id, nombre, rol, correo FROM Usuarios WHERE id = ?", (uid,)).fetchone()
+        if not u:
+            con.close()
+            flash('Usuario no encontrado.', 'danger')
+            return redirect(url_for('admin_usuarios'))
+
+        if u['rol'] == 'Administrador' and u['correo'] not in SUPER_ADMIN_EMAILS:
+            if not carrera_val or cargo_admin not in CARGOS_ADMIN_OPTS:
+                con.close()
+                flash('Un administrador de carrera debe tener carrera y cargo (Jefe o Coordinador).', 'warning')
+                return redirect(url_for('admin_usuarios') + '#admins')
+            ocupado = con.execute("""
+                SELECT nombre FROM Usuarios
+                WHERE rol = 'Administrador' AND carrera_id = ? AND cargo_admin = ? AND id != ? AND IFNULL(activo, 1) = 1
+            """, (carrera_val, cargo_admin, uid)).fetchone()
+            if ocupado:
+                con.close()
+                flash(f'El cargo de {cargo_admin} en esa carrera ya está ocupado por {ocupado["nombre"]}. Pásalo primero a Docente.', 'warning')
+                return redirect(url_for('admin_usuarios') + '#admins')
+            con.execute("UPDATE Usuarios SET carrera_id = ?, cargo_admin = ? WHERE id = ?", (carrera_val, cargo_admin, uid))
+            con.commit()
+            con.close()
+            flash(f'Asignación actualizada para {u["nombre"]}.', 'success')
+            return redirect(url_for('admin_usuarios') + '#admins')
+        else:
+            con.execute("UPDATE Usuarios SET carrera_id = ? WHERE id = ?", (carrera_val, uid))
+            con.commit()
+            con.close()
+            flash(f'Carrera actualizada para {u["nombre"]}.', 'success')
+            return redirect(url_for('admin_usuarios'))
+    except Exception as e:
+        flash(f'Error al asignar carrera: {str(e)}', 'danger')
+    return redirect(url_for('admin_usuarios'))
 
 @app.route('/admin/usuarios/<int:uid>/cambiar_rol', methods=['POST'])
 def cambiar_rol_usuario(uid):
@@ -887,16 +1474,44 @@ def cambiar_rol_usuario(uid):
         return redirect(url_for('admin_usuarios'))
     try:
         con = obtener_conexion()
-        usuario = con.execute("SELECT nombre, rol FROM Usuarios WHERE id=?", (uid,)).fetchone()
+        usuario = con.execute("SELECT nombre, rol, correo, carrera_id FROM Usuarios WHERE id=?", (uid,)).fetchone()
         if not usuario:
             con.close()
             flash('Usuario no encontrado.', 'danger')
             return redirect(url_for('admin_usuarios'))
-        con.execute("UPDATE Usuarios SET rol=? WHERE id=?", (nuevo_rol, uid))
-        con.commit()
-        con.close()
-        accion = 'promovido a Administrador' if nuevo_rol == 'Administrador' else 'regresado a Docente'
-        flash(f'¡{usuario["nombre"]} ha sido {accion} exitosamente!', 'success')
+        if usuario['correo'] in SUPER_ADMIN_EMAILS and nuevo_rol == 'Docente':
+            con.close()
+            flash('No se puede degradar a una cuenta de Super Administrador.', 'warning')
+            return redirect(url_for('admin_usuarios') + '#admins')
+
+        if nuevo_rol == 'Administrador':
+            carrera_raw = request.form.get('carrera_id', '').strip()
+            carrera_val = int(carrera_raw) if carrera_raw.isdigit() else usuario['carrera_id']
+            cargo_admin = request.form.get('cargo_admin', '').strip()
+            if not carrera_val or cargo_admin not in CARGOS_ADMIN_OPTS:
+                con.close()
+                flash('Debes seleccionar la Carrera y el Cargo (Jefe de Departamento o Coordinador de Carrera).', 'warning')
+                return redirect(url_for('admin_usuarios'))
+            ocupado = con.execute("""
+                SELECT nombre FROM Usuarios
+                WHERE rol = 'Administrador' AND carrera_id = ? AND cargo_admin = ? AND id != ? AND IFNULL(activo, 1) = 1
+            """, (carrera_val, cargo_admin, uid)).fetchone()
+            if ocupado:
+                con.close()
+                flash(f'El puesto de {cargo_admin} en esta carrera ya pertenece a {ocupado["nombre"]}. Cambia primero a esa persona al rol de Docente.', 'warning')
+                return redirect(url_for('admin_usuarios'))
+            con.execute("UPDATE Usuarios SET rol='Administrador', carrera_id=?, cargo_admin=? WHERE id=?", (carrera_val, cargo_admin, uid))
+            con.commit()
+            con.close()
+            flash(f'¡{usuario["nombre"]} ha sido promovido a {cargo_admin} exitosamente!', 'success')
+            return redirect(url_for('admin_usuarios') + '#admins')
+        else:
+            # Regresar a Docente conservando su carrera_id y liberando el cargo_admin
+            con.execute("UPDATE Usuarios SET rol='Docente', cargo_admin=NULL WHERE id=?", (uid,))
+            con.commit()
+            con.close()
+            flash(f'¡{usuario["nombre"]} ha vuelto al rol de Docente exitosamente!', 'success')
+            return redirect(url_for('admin_usuarios') + '#admins')
     except Exception as e:
         flash(f'Error al cambiar el rol: {str(e)}', 'danger')
     return redirect(url_for('admin_usuarios'))
@@ -961,8 +1576,15 @@ def crear_admin():
     nombre = request.form.get('nombre', '').strip()
     correo = request.form.get('correo', '').strip().lower()
     password = request.form.get('password', '')
+    carrera_raw = request.form.get('carrera_id', '').strip()
+    carrera_val = int(carrera_raw) if carrera_raw.isdigit() else None
+    cargo_admin = request.form.get('cargo_admin', '').strip()
+
     if len(nombre) < 3 or not correo or len(password) < 8:
         flash('Datos insuficientes para crear el administrador.', 'warning')
+        return redirect(url_for('admin_usuarios'))
+    if not carrera_val or cargo_admin not in CARGOS_ADMIN_OPTS:
+        flash('Debes asignar una Carrera y un Cargo (Jefe o Coordinador) al nuevo administrador.', 'warning')
         return redirect(url_for('admin_usuarios'))
     try:
         con = obtener_conexion()
@@ -970,14 +1592,25 @@ def crear_admin():
             con.close()
             flash('Este correo ya está registrado en el sistema.', 'warning')
             return redirect(url_for('admin_usuarios'))
+        ocupado = con.execute("""
+            SELECT nombre FROM Usuarios
+            WHERE rol = 'Administrador' AND carrera_id = ? AND cargo_admin = ? AND IFNULL(activo, 1) = 1
+        """, (carrera_val, cargo_admin)).fetchone()
+        if ocupado:
+            con.close()
+            flash(f'El cargo de {cargo_admin} en esa carrera ya está ocupado por {ocupado["nombre"]}.', 'warning')
+            return redirect(url_for('admin_usuarios'))
         hashed = generate_password_hash(password)
-        con.execute("INSERT INTO Usuarios (nombre, correo, password, rol, activo) VALUES (?,?,?,'Administrador',1)", (nombre, correo, hashed))
+        con.execute(
+            "INSERT INTO Usuarios (nombre, correo, password, rol, activo, carrera_id, cargo_admin) VALUES (?,?,?,'Administrador',1,?,?)",
+            (nombre, correo, hashed, carrera_val, cargo_admin)
+        )
         con.commit()
         con.close()
-        flash(f'¡Administrador {nombre} creado exitosamente!', 'success')
+        flash(f'¡{cargo_admin} {nombre} creado exitosamente!', 'success')
     except Exception as e:
         flash(f'Error al crear administrador: {str(e)}', 'danger')
-    return redirect(url_for('admin_usuarios'))
+    return redirect(url_for('admin_usuarios') + '#admins')
 
 # ─────────────────────────────────────────────
 #  MANEJADORES DE ERROR
@@ -1000,6 +1633,8 @@ def eliminar_clase(clase_id):
             flash('No tienes permiso para eliminar esta clase.', 'danger')
             return redirect(url_for('mis_clases'))
         con.execute('DELETE FROM EvidenciasClase WHERE clase_id=?', (clase_id,))
+        con.execute('DELETE FROM ClaseTiposEvidencia WHERE clase_id=?', (clase_id,))
+        con.execute('DELETE FROM ReflexionesClase WHERE clase_id=?', (clase_id,))
         con.execute('DELETE FROM MisClases WHERE id=? AND usuario_id=?', (clase_id, uid))
         con.commit()
         con.close()
