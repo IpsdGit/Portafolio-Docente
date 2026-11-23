@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Mis Clases Overview{% endblock %}
+{% block title %}Carga Académica{% endblock %}
 
 {% block body %}
 <nav class="navbar-institucional d-flex align-items-center justify-content-between">
@@ -67,7 +67,7 @@
       <i class="bi bi-patch-check-fill"></i>Certificados
     </a>
     <a href="{{ url_for('mis_clases') }}" class="subnav-link active">
-      <i class="bi bi-folder-fill"></i>Mis Clases
+      <i class="bi bi-folder-fill"></i>Carga Académica
     </a>
   </div>
 </div>
@@ -86,12 +86,12 @@
 
   <div class="d-flex justify-content-between align-items-center mb-4 fade-in-up flex-wrap gap-2" style="position: relative; z-index: 50;">
     <div>
-      <h3 style="color: var(--azul-oscuro); font-weight: 800; margin-bottom: 0.2rem;"><i class="bi bi-folder2-open me-2" style="color:var(--dorado);"></i>Mis Clases y Asignaciones</h3>
+      <h3 style="color: var(--azul-oscuro); font-weight: 800; margin-bottom: 0.2rem;"><i class="bi bi-folder2-open me-2" style="color:var(--dorado);"></i>Carga Académica</h3>
       <p class="text-muted" style="font-size: 0.9rem; margin: 0;">Gestiona tus evidencias de docencia, investigación, vinculación y desarrollo curricular.</p>
     </div>
     <div class="dropdown">
       <button class="btn-primary-pro dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="width: auto; padding: 0.55rem 1.25rem; font-size: 0.9rem; margin-top: 0;">
-        <i class="bi bi-plus-lg me-1"></i> Nueva Asignación
+        <i class="bi bi-plus-lg me-1"></i> Carga Académica
       </button>
       <ul class="dropdown-menu dropdown-menu-end shadow-lg border p-2" style="border-radius: 14px; min-width: 265px; z-index: 1060; background: #FFFFFF; border-color: var(--borde) !important;">
         <li class="px-2 py-1"><small class="text-muted fw-bold" style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em;">Selecciona la categoría</small></li>
@@ -246,8 +246,8 @@
     <div class="col-12 fade-in-up delay-1">
       <div style="text-align:center; padding:4rem 2rem; color:var(--texto-suave); background: white; border-radius: 12px; border: 1px dashed var(--borde);">
         <div style="font-size:3rem; margin-bottom:1rem; color: #CBD5E1;"><i class="bi bi-folder-x"></i></div>
-        <p style="font-weight:600; margin-bottom:.3rem;">No tienes asignaturas creadas</p>
-        <p style="font-size:.85rem;">Haz clic en el botón "Nueva Clase" para empezar a organizar tus evidencias.</p>
+        <p style="font-weight:600; margin-bottom:.3rem;">No tienes carga académica registrada</p>
+        <p style="font-size:.85rem;">Haz clic en el botón "+ Carga Académica" para empezar a organizar tus evidencias.</p>
       </div>
     </div>
     {% endif %}
@@ -263,7 +263,7 @@
   <div class="modal-dialog">
     <div class="modal-content border-0" style="border-radius: 12px; overflow: hidden;">
       <div class="modal-header" style="background: var(--azul-oscuro); color: white; border: none;">
-        <h5 class="modal-title" id="tituloModalNuevaAsignacion" style="font-weight: 600;"><i class="bi bi-plus-circle me-2"></i>Registrar Nueva Asignación</h5>
+        <h5 class="modal-title" id="tituloModalNuevaAsignacion" style="font-weight: 600;"><i class="bi bi-plus-circle me-2"></i>Registrar Carga Académica</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <form action="{{ url_for('nueva_clase') }}" method="POST">
@@ -398,7 +398,7 @@
     const wrapNat = document.getElementById('wrap_nueva_naturaleza');
     const selMod = document.getElementById('nueva_modalidad');
 
-    if (titulo) titulo.innerHTML = `<i class="bi bi-plus-circle me-2"></i>Registrar Nueva Asignación · ${cat}`;
+    if (titulo) titulo.innerHTML = `<i class="bi bi-plus-circle me-2"></i>Registrar Carga Académica · ${cat}`;
 
     if (cat === 'Clase') {
       if (lblNombre) lblNombre.textContent = 'Nombre del Espacio de Aprendizaje';
