@@ -638,16 +638,41 @@
     linksOcultar.forEach(el => el.style.display = 'none');
 
     const opciones = {
-      margin:       0.4,
+      margin:       [0.45, 0.45, 0.6, 0.45],
       filename:     'Informe_{{ (clase.categoria_actividad or "Clase") | replace(" ", "_") }}_{{ clase.nombre_espacio | replace(" ", "_") }}.pdf',
       image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true },
-      jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+      html2canvas:  { scale: 2, useCORS: true, letterRendering: true, scrollY: 0 },
+      jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' },
+      pagebreak:    { mode: ['css', 'legacy'], avoid: ['tr', '.p-3'] }
     };
 
-    html2pdf().set(opciones).from(area).save().then(() => {
-      linksOcultar.forEach(el => el.style.display = '');
-    });
+    html2pdf()
+      .set(opciones)
+      .from(area)
+      .toPdf()
+      .get('pdf')
+      .then(function (pdf) {
+        const totalPages = pdf.internal.getNumberOfPages();
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        for (let i = 1; i <= totalPages; i++) {
+          pdf.setPage(i);
+          pdf.setDrawColor(203, 213, 225);
+          pdf.setLineWidth(0.01);
+          pdf.line(0.45, pageHeight - 0.42, pageWidth - 0.45, pageHeight - 0.42);
+          pdf.setFontSize(8);
+          pdf.setTextColor(100, 116, 139);
+          pdf.text('Sistema Institucional de Portafolio Docente · UNAH — {{ clase.nombre_espacio }}', 0.45, pageHeight - 0.27);
+          pdf.text('Página ' + i + ' de ' + totalPages, pageWidth - 0.45, pageHeight - 0.27, { align: 'right' });
+        }
+      })
+      .save()
+      .then(function () {
+        linksOcultar.forEach(el => el.style.display = '');
+      })
+      .catch(function () {
+        linksOcultar.forEach(el => el.style.display = '');
+      });
   }
 
   function abrirModalSubir(tipoEvidencia) {

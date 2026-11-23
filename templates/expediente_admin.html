@@ -11,19 +11,84 @@
   .custom-tab-amarillo { color: #64748B; background: white; border: 1px solid #E2E8F0; }
   .custom-tab-amarillo.active { background: #FEF3C7 !important; color: #92400E !important; border-color: #FDE68A !important; box-shadow: 0 2px 4px rgba(146,64,14,0.05); }
   .custom-tab-amarillo:hover:not(.active) { background: #F8FAFC; }
+
+  /* ── Maquetación Institucional para Exportación PDF / Impresión ── */
+  #documento-pdf-institucional {
+    display: none;
+    width: 740px;
+    margin: 0 auto;
+    background: #FFFFFF;
+    color: #0F172A;
+    font-family: 'Inter', Arial, sans-serif;
+    font-size: 11.5px;
+    line-height: 1.45;
+  }
+  .pdf-no-break,
+  #documento-pdf-institucional tr,
+  .pdf-card-bloque,
+  .pdf-firmas-bloque {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+  .pdf-seccion-titulo {
+    background: #0A2463;
+    color: #FFFFFF;
+    font-family: 'Plus Jakarta Sans', 'Inter', Arial, sans-serif;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 6px 12px;
+    border-left: 4px solid #FFB703;
+    margin: 14px 0 8px 0;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+  .pdf-tabla {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 10px;
+    font-size: 10.8px;
+  }
+  .pdf-tabla th {
+    background: #F1F5F9;
+    color: #0A2463;
+    font-weight: 700;
+    text-align: left;
+    padding: 6px 8px;
+    border: 1px solid #CBD5E1;
+  }
+  .pdf-tabla td {
+    padding: 6px 8px;
+    border: 1px solid #CBD5E1;
+    vertical-align: top;
+  }
+
+  @media print {
+    @page { size: letter portrait; margin: 14mm 12mm; }
+    body { background: #FFFFFF !important; background-image: none !important; }
+    .navbar-institucional, #area-impresion, .modal { display: none !important; }
+    #documento-pdf-institucional {
+      display: block !important;
+      width: 100% !important;
+    }
+  }
 </style>
 
-<nav class="navbar-institucional d-flex align-items-center justify-content-between">
+<nav class="navbar-institucional d-flex align-items-center justify-content-between flex-wrap gap-2">
   <div>
     <div class="brand-text"><i class="bi bi-person-vcard-fill me-2"></i>Expediente Docente</div>
     <div class="brand-sub">Monitoreo y Reclasificación · UNAH</div>
   </div>
-  <div class="d-flex align-items-center gap-3">
-    <button onclick="generarPDF()" class="btn-export" style="background: white; color: var(--azul-oscuro); border: none; font-size: 0.85rem; font-weight: 700; padding: 0.4rem 1rem; margin-right: 1rem;">
-      <i class="bi bi-filetype-pdf me-1" style="color: #DC2626; font-size: 1.1rem;"></i> Descargar PDF
+  <div class="d-flex align-items-center gap-2 flex-wrap">
+    <button id="btn-descargar-pdf" onclick="generarPDF()" class="btn-export" style="background: white; color: var(--azul-oscuro); border: none; font-size: 0.84rem; font-weight: 700; padding: 0.42rem 1rem;">
+      <i class="bi bi-filetype-pdf me-1" style="color: #DC2626; font-size: 1.05rem;"></i> Descargar PDF
     </button>
-    <a href="{{ url_for('panel_admin') }}" class="btn-export" style="background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.4); font-size: 0.85rem; font-weight: 700; padding: 0.4rem 1.2rem; text-decoration: none; backdrop-filter: blur(4px); transition: all 0.2s ease;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">
-      <i class="bi bi-arrow-left-circle-fill me-1" style="font-size: 1.1rem;"></i> Volver al Panel
+    <button onclick="imprimirExpedienteVectorial()" class="btn-export" style="background: rgba(255,183,3,0.18); color: #FFB703; border: 1px solid rgba(255,183,3,0.45); font-size: 0.82rem; font-weight: 700; padding: 0.42rem 0.95rem;" title="Genera un PDF 100% vectorial con texto seleccionable y enlaces activos">
+      <i class="bi bi-printer-fill me-1"></i> Imprimir / Vectorial
+    </button>
+    <a href="{{ url_for('panel_admin') }}" class="btn-export" style="background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.4); font-size: 0.84rem; font-weight: 700; padding: 0.42rem 1.1rem; text-decoration: none; backdrop-filter: blur(4px); transition: all 0.2s ease;">
+      <i class="bi bi-arrow-left-circle-fill me-1" style="font-size: 1.05rem;"></i> Volver al Panel
     </a>
   </div>
 </nav>
@@ -413,8 +478,260 @@
   {% endfor %}
 </datalist>
 
+<!-- ═══════════════════════════════════════════════════════════════════════
+     PLANTILLA DEDICADA DE DOCUMENTO OFICIAL UNAH (HOJA DE VIDA / EXPEDIENTE)
+     ═══════════════════════════════════════════════════════════════════════ -->
+<div id="documento-pdf-institucional">
+  <!-- Membrete Oficial -->
+  <div class="pdf-no-break" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #0A2463; padding-bottom: 10px; margin-bottom: 12px;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <img src="{{ url_for('static', filename='img/logo_unah.jpg') }}" alt="UNAH" style="height: 62px; width: auto; object-fit: contain;">
+      <div>
+        <div style="font-size: 14px; font-weight: 800; color: #0A2463; letter-spacing: -0.01em;">UNIVERSIDAD NACIONAL AUTÓNOMA DE HONDURAS</div>
+        <div style="font-size: 11.5px; font-weight: 700; color: #1E3A8A;">EXPEDIENTE Y RESUMEN DE HOJA DE VIDA DOCENTE</div>
+        <div style="font-size: 10px; color: #64748B;">Sistema Institucional de Portafolio y Formación Continua</div>
+      </div>
+    </div>
+    <div style="text-align: right; font-size: 10px; color: #334155;">
+      <div><strong>Fecha de emisión:</strong> <span id="pdf-fecha-emision"></span></div>
+      <div><strong>Carrera / Bloque:</strong> {{ docente.nombre_carrera or docente.departamento or 'UNAH' }}</div>
+      <div style="margin-top: 3px; display: inline-block; background: #0A2463; color: #FFB703; font-weight: 800; padding: 2px 8px; border-radius: 10px;">
+        Horas Validadas: {{ horas_totales }} h
+      </div>
+    </div>
+  </div>
+
+  <!-- I. Ficha de Identificación Docente -->
+  <div class="pdf-seccion-titulo">I. Ficha de Identificación y Datos Académicos</div>
+  <table class="pdf-tabla pdf-no-break">
+    <tbody>
+      <tr>
+        <th style="width: 18%;">Nombre del Docente</th>
+        <td style="width: 32%; font-weight: 700; color: #0A2463;">{{ docente.nombre }}</td>
+        <th style="width: 18%;">Correo Institucional</th>
+        <td style="width: 32%;">{{ docente.correo }}</td>
+      </tr>
+      <tr>
+        <th>Facultad / Centro</th>
+        <td>{{ docente.facultad or 'No registrada' }}</td>
+        <th>Departamento / Carrera</th>
+        <td>{{ docente.nombre_carrera or docente.departamento or 'No registrado' }}</td>
+      </tr>
+      <tr>
+        <th>Cargo Administrativo</th>
+        <td>{{ docente.responsabilidad or 'Ninguno' }}</td>
+        <th>Resumen Global</th>
+        <td><strong>{{ clases|length }}</strong> registros de carga académica · <strong>{{ certificados|length }}</strong> certificados ({{ horas_totales }} h aprobadas)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- II. Constancia de Gestión y Autoridad Académica -->
+  {% if historial_cargos %}
+  <div class="pdf-seccion-titulo">II. Constancia de Gestión y Autoridad Académica</div>
+  <table class="pdf-tabla">
+    <thead>
+      <tr>
+        <th style="width: 24%;">Cargo Ejercido</th>
+        <th style="width: 24%;">Carrera / Unidad</th>
+        <th style="width: 20%;">Período</th>
+        <th style="width: 32%;">Respaldo Institucional</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for h in historial_cargos %}
+      <tr class="pdf-no-break">
+        <td style="font-weight: 700; color: #0A2463;">{{ h.cargo }}</td>
+        <td>{{ h.carrera_nombre }}</td>
+        <td style="font-weight: 600;">{{ h.fecha_inicio }} — {{ h.fecha_fin }}</td>
+        <td>{{ h.observacion }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <!-- III. Grados Académicos y Titulaciones -->
+  <div class="pdf-seccion-titulo">III. Grados Académicos y Titulaciones Universitarias</div>
+  {% if titulos %}
+  <table class="pdf-tabla">
+    <thead>
+      <tr>
+        <th style="width: 25%;">Nivel Académico</th>
+        <th style="width: 55%;">Denominación del Título</th>
+        <th style="width: 20%;">Respaldo</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for titulo in titulos %}
+      <tr class="pdf-no-break">
+        <td style="font-weight: 700; color: #92400E;">{{ titulo.nivel }}</td>
+        <td style="font-weight: 600; color: #0F172A;">{{ titulo.nombre_titulo }}</td>
+        <td>{% if titulo.url_archivo %}Documento verificado{% else %}Registrado{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="pdf-no-break" style="padding: 6px 10px; border: 1px solid #CBD5E1; background: #F8FAFC; margin-bottom: 10px; color: #64748B;">
+    No se han registrado títulos académicos en esta sección.
+  </div>
+  {% endif %}
+
+  <!-- IV. Síntesis Curricular, Filosofía y Reconocimientos -->
+  {% if docente.curriculum or docente.filosofia_ensenanza or docente.premios or docente.redes_sociales %}
+  <div class="pdf-seccion-titulo">IV. Síntesis Curricular, Filosofía de Enseñanza y Reconocimientos</div>
+  <table class="pdf-tabla">
+    <tbody>
+      {% if docente.curriculum %}
+      <tr class="pdf-no-break">
+        <th style="width: 22%;">Currículum Resumido</th>
+        <td style="white-space: pre-wrap;">{{ docente.curriculum }}</td>
+      </tr>
+      {% endif %}
+      {% if docente.filosofia_ensenanza %}
+      <tr class="pdf-no-break">
+        <th style="width: 22%;">Filosofía de Enseñanza</th>
+        <td style="white-space: pre-wrap;">{{ docente.filosofia_ensenanza }}</td>
+      </tr>
+      {% endif %}
+      {% if docente.premios %}
+      <tr class="pdf-no-break">
+        <th style="width: 22%;">Premios y Distinciones</th>
+        <td style="white-space: pre-wrap;">{{ docente.premios }}</td>
+      </tr>
+      {% endif %}
+      {% if docente.redes_sociales %}
+      <tr class="pdf-no-break">
+        <th style="width: 22%;">Redes Académicas</th>
+        <td style="white-space: pre-wrap;">{{ docente.redes_sociales }}</td>
+      </tr>
+      {% endif %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <!-- V. Carga Académica y Evidencias -->
+  <div class="pdf-seccion-titulo">V. Historial de Carga Académica y Evidencias ({{ clases|length }})</div>
+  {% if clases %}
+    {% for clase in clases %}
+    <div class="pdf-card-bloque" style="border: 1px solid #94A3B8; border-radius: 4px; margin-bottom: 10px; overflow: hidden;">
+      <div style="background: #EFF6FF; border-bottom: 1px solid #94A3B8; padding: 6px 10px; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <strong style="color: #0A2463; font-size: 11.5px;">[{{ clase.categoria_actividad or 'Clase' }}] {{ clase.nombre_espacio }}</strong>
+          {% if clase.codigo %}<span style="color: #475569; font-weight: 600;">({{ clase.codigo }})</span>{% endif %}
+          <span style="color: #334155; margin-left: 6px;">· Período: <strong>{{ clase.periodo }}</strong></span>
+          {% if clase.modalidad %}<span style="color: #334155;">· {{ clase.modalidad }}</span>{% endif %}
+        </div>
+        <div style="font-size: 10px; font-weight: 700; color: #1E3A8A;">
+          {{ clase.evidencias|length }} Evidencia(s) · {{ clase.reflexiones|length }} Reflexión(es)
+        </div>
+      </div>
+      <div style="padding: 8px 10px;">
+        {% if clase.evidencias %}
+        <table class="pdf-tabla" style="margin-bottom: {% if clase.reflexiones %}6px{% else %}0{% endif %};">
+          <thead>
+            <tr>
+              <th style="width: 34%;">Categoría de Evidencia</th>
+              <th style="width: 34%;">Archivo Registrado</th>
+              <th style="width: 14%;">Evaluación</th>
+              <th style="width: 18%;">Observaciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ev in clase.evidencias %}
+            <tr class="pdf-no-break">
+              <td style="font-weight: 600; color: #0A2463;">{{ ev.tipo_evidencia }}</td>
+              <td>{{ ev.nombre }}</td>
+              <td style="font-weight: 700;">{{ ev.estado_evaluacion or 'Sin Revisar' }}</td>
+              <td>{{ ev.comentario_admin or '—' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div style="color: #64748B; font-style: italic; font-size: 10.5px;">Sin evidencias cargadas en este registro.</div>
+        {% endif %}
+
+        {% if clase.reflexiones %}
+        <div style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed #CBD5E1;">
+          <div style="font-weight: 700; color: #065F46; font-size: 10.5px; margin-bottom: 3px;">Bitácora de Reflexión Docente:</div>
+          {% for ref in clase.reflexiones %}
+          <div class="pdf-no-break" style="font-size: 10.3px; color: #1E293B; margin-bottom: 4px;">
+            <strong>[{{ ref.fecha_registro[:10] }}]:</strong> {{ ref.contenido }}
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="pdf-no-break" style="padding: 6px 10px; border: 1px solid #CBD5E1; background: #F8FAFC; margin-bottom: 10px; color: #64748B;">
+      No registra carga académica.
+    </div>
+  {% endif %}
+
+  <!-- VI. Historial de Formación Continua -->
+  <div class="pdf-seccion-titulo">VI. Historial de Formación Continua y Certificados ({{ certificados|length }})</div>
+  {% if certificados %}
+  <table class="pdf-tabla">
+    <thead>
+      <tr>
+        <th style="width: 5%; text-align: center;">#</th>
+        <th style="width: 35%;">Nombre de la Actividad</th>
+        <th style="width: 28%;">Tipo / Institución</th>
+        <th style="width: 12%; text-align: center;">Fecha</th>
+        <th style="width: 10%; text-align: center;">Horas</th>
+        <th style="width: 10%; text-align: center;">Estado</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for cert in certificados %}
+      <tr class="pdf-no-break">
+        <td style="text-align: center; font-weight: 700;">{{ loop.index }}</td>
+        <td style="font-weight: 700; color: #0A2463;">{{ cert.nombre_actividad }}</td>
+        <td>{{ cert.tipo_formacion }} · {{ cert.institucion }}</td>
+        <td style="text-align: center;">{{ cert.fecha_emision }}</td>
+        <td style="text-align: center; font-weight: 700;">{{ cert.horas }} h</td>
+        <td style="text-align: center; font-weight: 700;">{{ cert.estado }}</td>
+      </tr>
+      {% endfor %}
+      <tr class="pdf-no-break" style="background: #F8FAFC;">
+        <td colspan="4" style="text-align: right; font-weight: 800; color: #0A2463;">TOTAL DE HORAS VALIDADAS (APROBADAS):</td>
+        <td colspan="2" style="text-align: center; font-weight: 800; color: #166534;">{{ horas_totales }} horas</td>
+      </tr>
+    </tbody>
+  </table>
+  {% else %}
+  <div class="pdf-no-break" style="padding: 6px 10px; border: 1px solid #CBD5E1; background: #F8FAFC; margin-bottom: 10px; color: #64748B;">
+    No registra certificados de formación continua.
+  </div>
+  {% endif %}
+
+  <!-- VII. Firmas y Validación -->
+  <div class="pdf-firmas-bloque" style="margin-top: 34px; padding-top: 12px; display: flex; justify-content: space-around; text-align: center; font-size: 10.5px;">
+    <div style="width: 42%; border-top: 1px solid #334155; padding-top: 5px;">
+      <strong style="color: #0A2463;">{{ docente.nombre }}</strong><br>
+      <span style="color: #64748B;">Docente Universitario · UNAH</span>
+    </div>
+    <div style="width: 42%; border-top: 1px solid #334155; padding-top: 5px;">
+      <strong style="color: #0A2463;">Jefatura / Coordinación de Carrera</strong><br>
+      <span style="color: #64748B;">Validación y Sello Institucional</span>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script>
+  // Fecha actual formateada para el membrete del PDF
+  document.addEventListener('DOMContentLoaded', function() {
+    const elFecha = document.getElementById('pdf-fecha-emision');
+    if (elFecha) {
+      elFecha.textContent = new Date().toLocaleDateString('es-HN', { year: 'numeric', month: 'long', day: 'numeric' });
+    }
+  });
+
   // LÓGICA DEL DOBLE FILTRO (AÑO Y PERÍODO)
   document.addEventListener('DOMContentLoaded', function() {
     const items = document.querySelectorAll('.clase-item-admin');
@@ -463,67 +780,69 @@
     });
   }
 
-  // LÓGICA DE EXPORTACIÓN A PDF
+  function imprimirExpedienteVectorial() {
+    window.print();
+  }
+
+  // LÓGICA DE EXPORTACIÓN A PDF INSTITUCIONAL CON CONTROL DE SALTOS DE PÁGINA Y NUMERACIÓN
   function generarPDF() {
-    // 1. Quitar los filtros temporalmente para que salgan todas las clases en el PDF
-    if(document.getElementById('filtroAnioAdmin')) {
-        document.getElementById('filtroAnioAdmin').value = 'Todos';
-        document.getElementById('filtroPeriodoAdmin').value = 'Todos';
-        filtrarClasesAdmin();
+    const docPdf = document.getElementById('documento-pdf-institucional');
+    const btnPdf = document.getElementById('btn-descargar-pdf');
+    const textoOriginalBtn = btnPdf ? btnPdf.innerHTML : '';
+
+    if (btnPdf) {
+      btnPdf.disabled = true;
+      btnPdf.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Generando PDF...';
     }
 
-    // 2. Mostrar elementos exclusivos de PDF
-    document.querySelectorAll('.solo-pdf').forEach(el => el.style.display = 'block');
-    
-    // 3. Ocultar botones y pestañas que no van en PDF
-    const elementosOcultos = document.querySelectorAll('.ocultar-en-pdf');
-    elementosOcultos.forEach(el => el.style.display = 'none');
-    
-    // 4. Detener animaciones CSS
-    document.querySelectorAll('.fade-in-up').forEach(el => {
-      el.style.opacity = '1';
-      el.style.animation = 'none';
-      el.style.transform = 'none';
-    });
+    docPdf.style.display = 'block';
 
-    // 5. FORZAR LA APERTURA DE TODOS LOS ACORDEONES Y PESTAÑAS
-    document.querySelectorAll('.tab-pane').forEach(el => {
-      el.classList.add('show', 'active');
-      el.style.display = 'block'; 
-    });
-    
-    document.querySelectorAll('.for-pdf-expand').forEach(el => {
-      el.classList.add('show');
-      el.style.display = 'block';
-    });
-
-    const area = document.getElementById('area-impresion');
     const opciones = {
-      margin:       0.4, 
+      margin:       [0.45, 0.45, 0.6, 0.45],
       filename:     'Expediente_UNAH_{{ docente.nombre | replace(" ", "_") }}.pdf',
       image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true }, 
-      jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+      html2canvas:  { scale: 2, useCORS: true, letterRendering: true, scrollY: 0 },
+      jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' },
+      pagebreak:    { mode: ['css', 'legacy'], avoid: ['.pdf-no-break', 'tr', '.pdf-card-bloque', '.pdf-firmas-bloque', '.pdf-seccion-titulo'] }
     };
 
-    html2pdf().set(opciones).from(area).save().then(() => {
-      // Restaurar la vista normal después de guardar
-      document.querySelectorAll('.solo-pdf').forEach(el => el.style.display = 'none');
-      elementosOcultos.forEach(el => el.style.display = '');
-      
-      // Restaurar las pestañas (Dejar solo la primera activa)
-      document.querySelectorAll('.tab-pane').forEach(el => {
-        el.style.display = '';
-        el.classList.remove('show', 'active');
+    html2pdf()
+      .set(opciones)
+      .from(docPdf)
+      .toPdf()
+      .get('pdf')
+      .then(function (pdf) {
+        const totalPages = pdf.internal.getNumberOfPages();
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+
+        for (let i = 1; i <= totalPages; i++) {
+          pdf.setPage(i);
+          pdf.setDrawColor(203, 213, 225);
+          pdf.setLineWidth(0.01);
+          pdf.line(0.45, pageHeight - 0.42, pageWidth - 0.45, pageHeight - 0.42);
+
+          pdf.setFontSize(8);
+          pdf.setTextColor(100, 116, 139);
+          pdf.text('Sistema Institucional de Portafolio Docente · UNAH — Expediente: {{ docente.nombre }}', 0.45, pageHeight - 0.27);
+          pdf.text('Página ' + i + ' de ' + totalPages, pageWidth - 0.45, pageHeight - 0.27, { align: 'right' });
+        }
+      })
+      .save()
+      .then(function () {
+        docPdf.style.display = 'none';
+        if (btnPdf) {
+          btnPdf.disabled = false;
+          btnPdf.innerHTML = textoOriginalBtn;
+        }
+      })
+      .catch(function () {
+        docPdf.style.display = 'none';
+        if (btnPdf) {
+          btnPdf.disabled = false;
+          btnPdf.innerHTML = textoOriginalBtn;
+        }
       });
-      document.getElementById('asignaturas-pane').classList.add('show', 'active');
-      
-      // Colapsar los acordeones de nuevo
-      document.querySelectorAll('.for-pdf-expand').forEach(el => {
-        el.style.display = '';
-        el.classList.remove('show');
-      });
-    });
   }
 
   // Lógica para cambiar el color de las pestañas activas
