@@ -331,121 +331,118 @@
           </div>
         </div>
 
-        <!-- 1. Datos Generales -->
-        <h6 style="color: var(--azul-oscuro); font-weight: 800; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.6rem;">
-          1. Ficha General de la Asignación
-        </h6>
-        <table class="table table-bordered mb-4" style="font-size: 0.83rem; border-color: #CBD5E1; width: 100%;">
+        <!-- I. Datos Generales -->
+        <div class="pdf-seccion-titulo">I. Ficha General de la Asignación</div>
+        <table class="pdf-tabla pdf-no-break">
           <tbody>
             <tr>
-              <th style="background: #F8FAFC; color: var(--azul-oscuro); width: 18%;">ID / Folio Único</th>
-              <td style="width: 32%; font-weight: 800; color: #0F172A;">ID #{{ folio_actual }} ({{ cat_actual }})</td>
-              <th style="background: #F8FAFC; color: var(--azul-oscuro); width: 18%;">Docente Responsable</th>
-              <td style="width: 32%; font-weight: 700; color: var(--azul-oscuro);">{{ nombre }}</td>
+              <th style="width: 18%;">ID / Folio Único</th>
+              <td style="width: 32%; font-weight: 800; color: #0A2463;">ID #{{ folio_actual }} ({{ cat_actual }})</td>
+              <th style="width: 18%;">Docente Responsable</th>
+              <td style="width: 32%; font-weight: 700; color: #0A2463;">{{ nombre }}</td>
             </tr>
             <tr>
-              <th style="background: #F8FAFC; color: var(--azul-oscuro);">Nombre / Espacio</th>
-              <td style="font-weight: 700; color: var(--azul-oscuro);">{{ clase.nombre_espacio }} ({{ clase.codigo or 'S/C' }})</td>
-              <th style="background: #F8FAFC; color: var(--azul-oscuro);">Sección y Período</th>
+              <th>Nombre / Espacio</th>
+              <td style="font-weight: 700; color: #0F172A;">{{ clase.nombre_espacio }} ({{ clase.codigo or 'S/C' }})</td>
+              <th>Sección y Período</th>
               <td><strong>{{ 'Sección ' ~ clase.seccion if clase.seccion else 'Sección Única' }}</strong> · {{ clase.periodo }}</td>
             </tr>
             <tr>
-              <th style="background: #F8FAFC; color: var(--azul-oscuro);">Modalidad / Naturaleza</th>
+              <th>Modalidad / Naturaleza</th>
               <td>{{ clase.modalidad or 'N/A' }}{% if clase.naturaleza %} · {{ clase.naturaleza }}{% endif %}{% if clase.uv_ca %} ({{ clase.uv_ca }} UV){% endif %}</td>
-              <th style="background: #F8FAFC; color: var(--azul-oscuro);">Categorías Cubiertas</th>
-              <td><strong style="color: var(--exito);">{{ tipos_completados }} de {{ total_tipos }} categorías ({{ porcentaje | int }}%)</strong></td>
+              <th>Categorías Cubiertas</th>
+              <td><strong style="color: #166534;">{{ tipos_completados }} de {{ total_tipos }} categorías ({{ porcentaje | int }}%)</strong></td>
             </tr>
           </tbody>
         </table>
 
-        <!-- 2. Matriz de Evidencias Recopiladas -->
-        <h6 style="color: var(--azul-oscuro); font-weight: 800; font-size: 0.92rem; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.75rem;">
-          2. Registro Detallado de Evidencias Cargadas
-        </h6>
-        <div class="table-responsive mb-4">
-          <table class="table table-bordered" style="font-size: 0.82rem; border-color: #CBD5E1; vertical-align: middle;">
-            <thead style="background: #F1F5F9; color: var(--azul-oscuro);">
-              <tr>
-                <th style="width: 5%; text-align: center;">#</th>
-                <th style="width: 28%;">Categoría Obligatoria</th>
-                <th style="width: 13%; text-align: center;">Estado</th>
-                <th style="width: 32%;">Archivos / Evidencias Registradas</th>
-                <th style="width: 22%;">Evaluación y Observaciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for tipo in tipos_evidencia %}
-              {% set lista_ev = evidencias_por_tipo[tipo] if evidencias_por_tipo and tipo in evidencias_por_tipo else [] %}
-              <tr>
-                <td class="text-center fw-bold">{{ loop.index }}</td>
-                <td style="font-weight: 700; color: var(--azul-oscuro);">{{ tipo }}</td>
-                <td class="text-center">
-                  {% if lista_ev %}
-                    <span style="display:inline-block; padding:0.18rem 0.55rem; border-radius:12px; background:#DCFCE7; color:#166534; font-weight:700; font-size:0.72rem;">
-                      Completada ({{ lista_ev|length }})
+        <!-- II. Matriz de Evidencias Recopiladas -->
+        <div class="pdf-seccion-titulo">II. Registro Detallado de Evidencias Cargadas</div>
+        <table class="pdf-tabla">
+          <thead>
+            <tr>
+              <th style="width: 5%; text-align: center;">#</th>
+              <th style="width: 28%;">Categoría Obligatoria</th>
+              <th style="width: 14%; text-align: center;">Estado</th>
+              <th style="width: 31%;">Archivos / Evidencias Registradas</th>
+              <th style="width: 22%;">Evaluación y Observaciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for tipo in tipos_evidencia %}
+            {% set lista_ev = evidencias_por_tipo[tipo] if evidencias_por_tipo and tipo in evidencias_por_tipo else [] %}
+            <tr class="pdf-no-break">
+              <td style="text-align: center; font-weight: 700;">{{ loop.index }}</td>
+              <td style="font-weight: 700; color: #0A2463;">{{ tipo }}</td>
+              <td style="text-align: center;">
+                {% if lista_ev %}
+                  <span style="color: #166534; font-weight: 700;">Completada ({{ lista_ev|length }})</span>
+                {% else %}
+                  <span style="color: #991B1B; font-weight: 700;">Pendiente</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if lista_ev %}
+                  {% for ev in lista_ev %}
+                  <div style="margin-bottom: {% if not loop.last %}4px{% else %}0{% endif %};">
+                    <strong>{{ ev.nombre }}</strong>
+                    <a href="{{ ev.url_archivo }}" target="_blank" class="ocultar-en-informe-pdf ms-1" style="font-size: 0.72rem; color: var(--azul-claro); text-decoration: none;">[Ver archivo]</a>
+                  </div>
+                  {% endfor %}
+                {% else %}
+                  <span style="color: #64748B; font-style: italic;">Sin archivos cargados</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if lista_ev %}
+                  {% for ev in lista_ev %}
+                  <div style="margin-bottom: {% if not loop.last %}4px{% else %}0{% endif %};">
+                    <span style="font-weight: 700; color: {% if ev.estado_evaluacion == 'Excelente' %}#166534{% elif ev.estado_evaluacion == 'Con Observaciones' %}#B45309{% elif ev.estado_evaluacion == 'Debe Mejorar' %}#991B1B{% else %}#475569{% endif %};">
+                      {{ ev.estado_evaluacion or 'Sin Revisar' }}
                     </span>
-                  {% else %}
-                    <span style="display:inline-block; padding:0.18rem 0.55rem; border-radius:12px; background:#FEE2E2; color:#991B1B; font-weight:700; font-size:0.72rem;">
-                      Pendiente
-                    </span>
-                  {% endif %}
-                </td>
-                <td>
-                  {% if lista_ev %}
-                    <ul style="margin: 0; padding-left: 1.1rem;">
-                      {% for ev in lista_ev %}
-                      <li style="margin-bottom: 0.2rem;">
-                        <strong>{{ ev.nombre }}</strong>
-                        <a href="{{ ev.url_archivo }}" target="_blank" class="ocultar-en-informe-pdf ms-1" style="font-size: 0.73rem; color: var(--azul-claro); text-decoration: none;">[Ver archivo]</a>
-                      </li>
-                      {% endfor %}
-                    </ul>
-                  {% else %}
-                    <span class="text-muted fst-italic">Sin archivos cargados</span>
-                  {% endif %}
-                </td>
-                <td>
-                  {% if lista_ev %}
-                    {% for ev in lista_ev %}
-                    <div style="margin-bottom: 0.25rem;">
-                      <span style="font-weight: 700; font-size: 0.73rem; color: {% if ev.estado_evaluacion == 'Excelente' %}#166534{% elif ev.estado_evaluacion == 'Con Observaciones' %}#B45309{% elif ev.estado_evaluacion == 'Debe Mejorar' %}#991B1B{% else %}#64748B{% endif %};">
-                        {{ ev.estado_evaluacion or 'Sin Revisar' }}
-                      </span>
-                      {% if ev.comentario_admin %}
-                        <div class="fst-italic text-muted" style="font-size: 0.73rem;">"{{ ev.comentario_admin }}"</div>
-                      {% endif %}
-                    </div>
-                    {% endfor %}
-                  {% else %}
-                    <span class="text-muted">—</span>
-                  {% endif %}
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-
-        <!-- 3. Reflexión Docente -->
-        <h6 style="color: var(--azul-oscuro); font-weight: 800; font-size: 0.92rem; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.75rem;">
-          3. Síntesis de Reflexión Docente
-        </h6>
-        {% if reflexiones %}
-          <div class="d-flex flex-column gap-2 mb-4">
-            {% for ref in reflexiones %}
-            <div class="p-3 rounded-3" style="background: #F8FAFC; border: 1px solid #E2E8F0; border-left: 4px solid var(--dorado);">
-              <div style="font-size: 0.74rem; font-weight: 700; color: #64748B; margin-bottom: 0.3rem;">
-                Fecha de registro: {{ ref.fecha_registro[:10] }}
-                {% if ref.url_instrumento %} · <span>Instrumento adjunto registrado</span>{% endif %}
-              </div>
-              <div style="font-size: 0.84rem; color: #1E293B; white-space: pre-wrap;">{{ ref.contenido }}</div>
-            </div>
+                    {% if ev.comentario_admin %}
+                      <div style="font-style: italic; color: #475569; font-size: 10.5px;">"{{ ev.comentario_admin }}"</div>
+                    {% endif %}
+                  </div>
+                  {% endfor %}
+                {% else %}
+                  <span style="color: #64748B;">—</span>
+                {% endif %}
+              </td>
+            </tr>
             {% endfor %}
-          </div>
+          </tbody>
+        </table>
+
+        <!-- III. Reflexión Docente -->
+        <div class="pdf-seccion-titulo">III. Síntesis de Reflexión Docente</div>
+        {% if reflexiones %}
+        <table class="pdf-tabla">
+          <thead>
+            <tr>
+              <th style="width: 18%;">Fecha de Registro</th>
+              <th style="width: 64%;">Contenido de la Reflexión</th>
+              <th style="width: 18%;">Instrumento</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ref in reflexiones %}
+            <tr class="pdf-no-break">
+              <td style="font-weight: 700; color: #0A2463;">{{ ref.fecha_registro[:10] }}</td>
+              <td style="white-space: pre-wrap;">{{ ref.contenido }}</td>
+              <td>{% if ref.url_instrumento %}Instrumento adjunto{% else %}—{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
         {% else %}
-          <div class="p-3 mb-4 rounded-3 text-muted fst-italic" style="background: #F8FAFC; border: 1px solid #E2E8F0; font-size: 0.83rem;">
-            No se registraron entradas en el diario de reflexión para esta asignación.
-          </div>
+        <table class="pdf-tabla">
+          <tbody>
+            <tr class="pdf-no-break">
+              <td style="color: #64748B; font-style: italic;">No se registraron entradas en el diario de reflexión para esta asignación.</td>
+            </tr>
+          </tbody>
+        </table>
         {% endif %}
 
         <!-- 4. Bloque de Firmas -->

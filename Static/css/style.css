@@ -952,3 +952,44 @@ h1, h2, h3, h4, h5, h6, .brand-text, .clase-titulo, .kpi-info h3 {
   background: rgba(255, 255, 255, 0.18);
   color: #FFFFFF;
 }
+
+/* ── Tablas y Encabezados de Reportes Institucionales (PDF) ── */
+.pdf-seccion-titulo {
+  background: #0A2463;
+  color: #FFFFFF;
+  font-family: 'Plus Jakarta Sans', 'Inter', Arial, sans-serif;
+  font-size: 11.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 7px 12px;
+  border-left: 4px solid #FFB703;
+  margin: 16px 0 8px 0;
+  page-break-after: avoid !important;
+  break-after: avoid !important;
+}
+.pdf-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 12px;
+  font-size: 11.5px;
+}
+.pdf-tabla th {
+  background: #F1F5F9;
+  color: #0A2463;
+  font-weight: 700;
+  text-align: left;
+  padding: 7px 10px;
+  border: 1px solid #CBD5E1;
+}
+.pdf-tabla td {
+  padding: 7px 10px;
+  border: 1px solid #CBD5E1;
+  vertical-align: middle;
+  color: #0F172A;
+}
+.pdf-no-break,
+.pdf-tabla tr {
+  page-break-inside: avoid !important;
+  break-inside: avoid !important;
+}
