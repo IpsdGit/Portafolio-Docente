@@ -169,7 +169,7 @@
   <ul class="nav nav-pills fade-in-up delay-1 mb-4 ocultar-en-pdf gap-3" id="adminTabs" role="tablist">
     <li class="nav-item" role="presentation">
       <button class="nav-link active fw-bold custom-tab-azul" id="asignaturas-tab" data-bs-toggle="pill" data-bs-target="#asignaturas-pane" type="button" role="tab" style="border-radius: 8px; padding: 0.6rem 1.2rem; transition: all 0.2s;">
-        <i class="bi bi-book-half me-2"></i>Asignaturas Impartidas
+        <i class="bi bi-book-half me-2"></i>Carga Académica
       </button>
     </li>
     <li class="nav-item" role="presentation">
@@ -183,7 +183,7 @@
     
     <div class="tab-pane fade show active" id="asignaturas-pane" role="tabpanel">
       
-      <h5 class="solo-pdf mt-4 mb-3" style="display:none; color: var(--azul-oscuro); font-weight: 700;"><i class="bi bi-book-half me-2"></i>Asignaturas Impartidas</h5>
+      <h5 class="solo-pdf mt-4 mb-3" style="display:none; color: var(--azul-oscuro); font-weight: 700;"><i class="bi bi-book-half me-2"></i>Carga Académica</h5>
       
       {% if clases %}
       <div class="ocultar-en-pdf d-flex flex-wrap align-items-center gap-4 mb-4 fade-in-up delay-1" style="background: #F8FAFC; padding: 1rem 1.2rem; border-radius: 8px; border: 1px solid #E2E8F0;">
@@ -238,9 +238,9 @@
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
                   <div>
                     <div style="font-size: 0.82rem; font-weight: 800; color: var(--azul-oscuro);">
-                      <i class="bi bi-sliders2 me-1" style="color: var(--azul-claro);"></i>Categorías de Evidencias de esta Clase ({{ clase.tipos_evidencia|length }})
+                      <i class="bi bi-sliders2 me-1" style="color: var(--azul-claro);"></i>Categorías de Evidencias de esta Carga Académica ({{ clase.tipos_evidencia|length }})
                     </div>
-                    <small class="text-muted" style="font-size: 0.72rem;">Agrega o quita evidencias requeridas específicamente para esta asignatura.</small>
+                    <small class="text-muted" style="font-size: 0.72rem;">Agrega o quita evidencias requeridas específicamente para esta carga académica.</small>
                   </div>
                   <form action="{{ url_for('admin_eliminar_clase', clase_id=clase.id) }}" method="POST" onsubmit="return confirm('¿Seguro que deseas eliminar la clase «{{ clase.nombre_espacio }} ({{ clase.periodo }})» y TODAS sus evidencias y reflexiones? Esta acción no se puede deshacer.');">
                     <button type="submit" class="btn btn-sm" style="background: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; font-size: 0.75rem; font-weight: 700; border-radius: 8px; padding: 0.3rem 0.75rem;">
@@ -324,7 +324,7 @@
         {% endfor %}
       </div>
       {% else %}
-        <div class="card-pro card-pro-body text-center text-muted" style="padding: 3rem 1rem;">No ha registrado asignaturas.</div>
+        <div class="card-pro card-pro-body text-center text-muted" style="padding: 3rem 1rem;">No ha registrado carga académica.</div>
       {% endif %}
     </div>
 
