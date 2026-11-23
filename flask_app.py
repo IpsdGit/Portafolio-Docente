@@ -138,13 +138,14 @@ for _col_u in ['carrera_id INTEGER', 'cargo_admin TEXT', 'fecha_inicio_cargo TEX
         _conn.close()
     except: pass
 
-# Parche V4: Categoría laboral en MisClases, categoría en CatalogoEvidencias e HistorialCargosDocente
-try:
-    _conn = sqlite3.connect(DB_PATH)
-    _conn.execute("ALTER TABLE MisClases ADD COLUMN categoria_actividad TEXT DEFAULT 'Clase'")
-    _conn.commit()
-    _conn.close()
-except: pass
+# Parche V4: Categoría laboral y sección en MisClases, categoría en CatalogoEvidencias e HistorialCargosDocente
+for _col_mc in ["categoria_actividad TEXT DEFAULT 'Clase'", "seccion TEXT DEFAULT ''"]:
+    try:
+        _conn = sqlite3.connect(DB_PATH)
+        _conn.execute(f"ALTER TABLE MisClases ADD COLUMN {_col_mc}")
+        _conn.commit()
+        _conn.close()
+    except: pass
 
 try:
     _conn = sqlite3.connect(DB_PATH)
@@ -779,8 +780,8 @@ def nueva_clase():
         return redirect(url_for('mis_clases'))
     try:
         con = obtener_conexion()
-        cur = con.execute("INSERT INTO MisClases (usuario_id, categoria_actividad, periodo, nombre_espacio, codigo, naturaleza, modalidad, uv_ca) VALUES (?,?,?,?,?,?,?,?)", 
-                          (uid, categoria_actividad, periodo, nombre_espacio, request.form.get('codigo', '').strip(), request.form.get('naturaleza', ''), request.form.get('modalidad', ''), request.form.get('uv_ca', '').strip()))
+        cur = con.execute("INSERT INTO MisClases (usuario_id, categoria_actividad, periodo, nombre_espacio, codigo, seccion, naturaleza, modalidad, uv_ca) VALUES (?,?,?,?,?,?,?,?,?)", 
+                          (uid, categoria_actividad, periodo, nombre_espacio, request.form.get('codigo', '').strip(), request.form.get('seccion', '').strip(), request.form.get('naturaleza', ''), request.form.get('modalidad', ''), request.form.get('uv_ca', '').strip()))
         nueva_id = cur.lastrowid
 
         origen_valido = None
@@ -855,14 +856,15 @@ def editar_clase(clase_id):
     periodo_anio = request.form.get('periodo_anio', '').strip()
     periodo = f"{periodo_tipo} {periodo_anio}".strip()
     categoria_actividad = request.form.get('categoria_actividad', '').strip()
+    seccion = request.form.get('seccion', '').strip()
     try:
         con = obtener_conexion()
         if categoria_actividad in CATEGORIAS_ACTIVIDAD:
-            con.execute("UPDATE MisClases SET categoria_actividad=?, periodo=?, nombre_espacio=?, codigo=?, naturaleza=?, modalidad=?, uv_ca=? WHERE id=? AND usuario_id=?", 
-                        (categoria_actividad, periodo, request.form.get('nombre_espacio', '').strip(), request.form.get('codigo', '').strip(), request.form.get('naturaleza', ''), request.form.get('modalidad', ''), request.form.get('uv_ca', '').strip(), clase_id, uid))
+            con.execute("UPDATE MisClases SET categoria_actividad=?, periodo=?, nombre_espacio=?, codigo=?, seccion=?, naturaleza=?, modalidad=?, uv_ca=? WHERE id=? AND usuario_id=?", 
+                        (categoria_actividad, periodo, request.form.get('nombre_espacio', '').strip(), request.form.get('codigo', '').strip(), seccion, request.form.get('naturaleza', ''), request.form.get('modalidad', ''), request.form.get('uv_ca', '').strip(), clase_id, uid))
         else:
-            con.execute("UPDATE MisClases SET periodo=?, nombre_espacio=?, codigo=?, naturaleza=?, modalidad=?, uv_ca=? WHERE id=? AND usuario_id=?", 
-                        (periodo, request.form.get('nombre_espacio', '').strip(), request.form.get('codigo', '').strip(), request.form.get('naturaleza', ''), request.form.get('modalidad', ''), request.form.get('uv_ca', '').strip(), clase_id, uid))
+            con.execute("UPDATE MisClases SET periodo=?, nombre_espacio=?, codigo=?, seccion=?, naturaleza=?, modalidad=?, uv_ca=? WHERE id=? AND usuario_id=?", 
+                        (periodo, request.form.get('nombre_espacio', '').strip(), request.form.get('codigo', '').strip(), seccion, request.form.get('naturaleza', ''), request.form.get('modalidad', ''), request.form.get('uv_ca', '').strip(), clase_id, uid))
         con.commit()
         con.close()
         flash('¡Asignación actualizada!', 'success')

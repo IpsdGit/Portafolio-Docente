@@ -91,6 +91,7 @@
   {% endwith %}
 
   {% set cat_actual = clase.categoria_actividad or 'Clase' %}
+  {% set folio_actual = '%04d' | format(clase.id) %}
   {% set total_tipos = tipos_evidencia | length %}
   {% set tipos_completados = evidencias_por_tipo | length if evidencias_por_tipo else 0 %}
   {% set porcentaje = (tipos_completados / total_tipos * 100) | round if total_tipos > 0 else 0 %}
@@ -99,14 +100,23 @@
     <div class="card-pro-body d-flex flex-wrap justify-content-between align-items-start gap-3">
       <div>
         <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+          <span class="badge px-2 py-1" style="background: #0F172A; color: #F8FAFC; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.03em;">
+            ID #{{ folio_actual }}
+          </span>
           <span class="badge rounded-pill px-2 py-1" style="background: {% if cat_actual == 'Investigación' %}#F5F3FF; color: #6D28D9; border: 1px solid #DDD6FE{% elif cat_actual == 'Vinculación' %}#ECFDF5; color: #047857; border: 1px solid #A7F3D0{% elif cat_actual == 'Desarrollo Curricular' %}#FFFBEB; color: #B45309; border: 1px solid #FDE68A{% elif cat_actual == 'Otra' %}#F1F5F9; color: #334155; border: 1px solid #CBD5E1{% else %}#EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE{% endif %}; font-size: 0.75rem; font-weight: 700;">
             {{ cat_actual }}
           </span>
           <h3 style="color: var(--azul-oscuro); font-weight: 800; margin: 0;">{{ clase.nombre_espacio }}</h3>
           <span class="badge bg-light text-secondary border px-2 py-1" style="font-size: 0.8rem;">{{ clase.codigo or 'S/C' }}</span>
+          {% if clase.seccion %}
+          <span class="badge px-2 py-1" style="background: #FEF3C7; color: #92400E; border: 1px solid #FDE68A; font-size: 0.78rem; font-weight: 800;">
+            <i class="bi bi-clock-fill me-1"></i>Sección: {{ clase.seccion }}
+          </span>
+          {% endif %}
         </div>
         <div class="text-muted d-flex flex-wrap gap-3" style="font-size: 0.9rem;">
           <span><i class="bi bi-calendar3 me-1"></i>Periodo: {{ clase.periodo }}</span>
+          {% if clase.seccion %}<span>| <i class="bi bi-clock me-1"></i>Sección / Horario: <strong>{{ clase.seccion }}</strong></span>{% endif %}
           {% if clase.modalidad %}<span>| <i class="bi bi-display me-1"></i>{{ clase.modalidad }}</span>{% endif %}
           {% if clase.naturaleza %}<span>| <i class="bi bi-book me-1"></i>{{ clase.naturaleza }}</span>{% endif %}
           {% if clase.uv_ca %}<span>| <i class="bi bi-circle-fill me-1" style="font-size: 0.4rem; vertical-align: middle;"></i>{{ clase.uv_ca }} UV</span>{% endif %}
@@ -314,6 +324,7 @@
             </div>
           </div>
           <div class="text-end">
+            <div style="font-size: 0.76rem; font-weight: 800; color: var(--azul-oscuro); margin-bottom: 0.25rem;">ID Único: #{{ folio_actual }}</div>
             <span class="badge rounded-pill px-3 py-2" style="background: var(--azul-oscuro); color: var(--dorado); font-size: 0.78rem; font-weight: 700;">
               Cumplimiento: {{ porcentaje | int }}%
             </span>
@@ -327,16 +338,16 @@
         <table class="table table-bordered mb-4" style="font-size: 0.83rem; border-color: #CBD5E1; width: 100%;">
           <tbody>
             <tr>
+              <th style="background: #F8FAFC; color: var(--azul-oscuro); width: 18%;">ID / Folio Único</th>
+              <td style="width: 32%; font-weight: 800; color: #0F172A;">ID #{{ folio_actual }} ({{ cat_actual }})</td>
               <th style="background: #F8FAFC; color: var(--azul-oscuro); width: 18%;">Docente Responsable</th>
               <td style="width: 32%; font-weight: 700; color: var(--azul-oscuro);">{{ nombre }}</td>
-              <th style="background: #F8FAFC; color: var(--azul-oscuro); width: 18%;">Nombre / Espacio</th>
-              <td style="width: 32%; font-weight: 700; color: var(--azul-oscuro);">{{ clase.nombre_espacio }}</td>
             </tr>
             <tr>
-              <th style="background: #F8FAFC; color: var(--azul-oscuro);">Categoría y Código</th>
-              <td>{{ cat_actual }} · <strong>{{ clase.codigo or 'S/C' }}</strong></td>
-              <th style="background: #F8FAFC; color: var(--azul-oscuro);">Período Académico</th>
-              <td>{{ clase.periodo }}</td>
+              <th style="background: #F8FAFC; color: var(--azul-oscuro);">Nombre / Espacio</th>
+              <td style="font-weight: 700; color: var(--azul-oscuro);">{{ clase.nombre_espacio }} ({{ clase.codigo or 'S/C' }})</td>
+              <th style="background: #F8FAFC; color: var(--azul-oscuro);">Sección y Período</th>
+              <td><strong>{{ 'Sección ' ~ clase.seccion if clase.seccion else 'Sección Única' }}</strong> · {{ clase.periodo }}</td>
             </tr>
             <tr>
               <th style="background: #F8FAFC; color: var(--azul-oscuro);">Modalidad / Naturaleza</th>
@@ -491,8 +502,9 @@
             </div>
 
             <div class="col-12"><label class="form-label-pro">Nombre</label><input type="text" name="nombre_espacio" class="form-control-pro bg-white" value="{{ clase.nombre_espacio }}" required></div>
-            <div class="col-md-6"><label class="form-label-pro">Código</label><input type="text" name="codigo" class="form-control-pro bg-white" value="{{ clase.codigo or '' }}"></div>
-            <div class="col-md-6"><label class="form-label-pro">UV / CA</label><input type="number" name="uv_ca" class="form-control-pro bg-white" value="{{ clase.uv_ca or '' }}"></div>
+            <div class="col-md-4"><label class="form-label-pro">Código</label><input type="text" name="codigo" class="form-control-pro bg-white" value="{{ clase.codigo or '' }}"></div>
+            <div class="col-md-4"><label class="form-label-pro">Sección / Horario</label><input type="text" name="seccion" class="form-control-pro bg-white" value="{{ clase.seccion or '' }}" placeholder="Ej. 0700"></div>
+            <div class="col-md-4"><label class="form-label-pro">UV / CA</label><input type="number" name="uv_ca" class="form-control-pro bg-white" value="{{ clase.uv_ca or '' }}"></div>
             <div class="col-md-6">
               <label class="form-label-pro">Modalidad</label>
               <select name="modalidad" class="form-control-pro bg-white" required>

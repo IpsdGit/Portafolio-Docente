@@ -270,24 +270,34 @@
             <option value="Primer Trimestre">Primer Trimestre</option>
             <option value="Segundo Trimestre">Segundo Trimestre</option>
             <option value="Tercer Trimestre">Tercer Trimestre</option>
+            <option value="Primer Semestre">Primer Semestre</option>
+            <option value="Segundo Semestre">Segundo Semestre</option>
+            <option value="Anual">Anual</option>
           </select>
+        </div>
+
+        <div class="d-flex align-items-center gap-2 ms-auto">
+          <input type="text" id="buscadorCargaAdmin" class="form-control-pro bg-white" onkeyup="filtrarClasesAdmin()" placeholder="Buscar ID (#24), sección, nombre..." style="border: 1px solid #CBD5E1; border-radius: 6px; padding: 0.3rem 0.8rem; min-width: 240px; font-size: 0.85rem;">
         </div>
       </div>
 
       <div class="accordion fade-in-up delay-2" id="acordeonClases">
         {% for clase in clases %}
-        <div class="accordion-item mb-3 clase-item-admin" data-periodo="{{ clase.periodo }}" style="border: 1px solid var(--borde); border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+        {% set folio_adm = '%04d' | format(clase.id) %}
+        <div class="accordion-item mb-3 clase-item-admin" data-periodo="{{ clase.periodo }}" data-busqueda="id #{{ folio_adm }} #{{ clase.id }} {{ folio_adm }} {{ clase.nombre_espacio }} {{ clase.codigo or '' }} {{ clase.seccion or '' }} {{ clase.categoria_actividad or 'Clase' }}" style="border: 1px solid var(--borde); border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
           
           <h2 class="accordion-header" id="heading{{ clase.id }}">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ clase.id }}" style="background-color: white; padding: 1.2rem;">
               <div class="d-flex justify-content-between align-items-center w-100 me-3">
                 <div>
                   <h6 style="margin:0; font-weight: 800; color: var(--azul-oscuro);">
+                    <span class="badge me-1" style="background:#0F172A; color:#F8FAFC; font-size:.66rem;">ID #{{ '%04d' | format(clase.id) }}</span>
                     <span class="badge rounded-pill me-1" style="background:#EFF6FF; color:#1E40AF; border:1px solid #BFDBFE; font-size:.68rem;">{{ clase.categoria_actividad or 'Clase' }}</span>
                     {{ clase.nombre_espacio }}
-                    <span class="badge bg-light text-secondary border ms-2" style="font-size:.7rem;">{{ clase.codigo }}</span>
+                    <span class="badge bg-light text-secondary border ms-1" style="font-size:.7rem;">{{ clase.codigo or 'S/C' }}</span>
+                    {% if clase.seccion %}<span class="badge ms-1" style="background:#FEF3C7; color:#92400E; border:1px solid #FDE68A; font-size:.68rem;">Sec. {{ clase.seccion }}</span>{% endif %}
                   </h6>
-                  <small class="text-muted"><i class="bi bi-calendar3 me-1"></i>{{ clase.periodo }} | Modalidad: {{ clase.modalidad or 'N/A' }}</small>
+                  <small class="text-muted"><i class="bi bi-calendar3 me-1"></i>{{ clase.periodo }}{% if clase.seccion %} | Sección: {{ clase.seccion }}{% endif %} | Modalidad: {{ clase.modalidad or 'N/A' }}</small>
                 </div>
                 <div class="text-end ocultar-en-pdf">
                   <span class="badge bg-success bg-opacity-10 text-success border border-success"><i class="bi bi-paperclip"></i> {{ clase.evidencias|length }} Evidencias</span>
@@ -620,8 +630,9 @@
     <div class="pdf-card-bloque" style="border: 1px solid #94A3B8; border-radius: 4px; margin-bottom: 10px; overflow: hidden;">
       <div style="background: #EFF6FF; border-bottom: 1px solid #94A3B8; padding: 6px 10px; display: flex; justify-content: space-between; align-items: center;">
         <div>
-          <strong style="color: #0A2463; font-size: 11.5px;">[{{ clase.categoria_actividad or 'Clase' }}] {{ clase.nombre_espacio }}</strong>
+          <strong style="color: #0A2463; font-size: 11.5px;">[ID #{{ '%04d' | format(clase.id) }} · {{ clase.categoria_actividad or 'Clase' }}] {{ clase.nombre_espacio }}</strong>
           {% if clase.codigo %}<span style="color: #475569; font-weight: 600;">({{ clase.codigo }})</span>{% endif %}
+          {% if clase.seccion %}<span style="color: #92400E; font-weight: 700; margin-left: 4px;">· Sección: {{ clase.seccion }}</span>{% endif %}
           <span style="color: #334155; margin-left: 6px;">· Período: <strong>{{ clase.periodo }}</strong></span>
           {% if clase.modalidad %}<span style="color: #334155;">· {{ clase.modalidad }}</span>{% endif %}
         </div>
@@ -765,16 +776,20 @@
   function filtrarClasesAdmin() {
     const anioFiltro = document.getElementById('filtroAnioAdmin').value;
     const periodoFiltro = document.getElementById('filtroPeriodoAdmin').value;
+    const busqEl = document.getElementById('buscadorCargaAdmin');
+    const textoBusq = busqEl ? busqEl.value.toLowerCase().trim() : '';
     const items = document.querySelectorAll('.clase-item-admin');
 
     items.forEach(item => {
       const anio = item.getAttribute('data-anio');
       const periodoCompleto = item.getAttribute('data-periodo') || "";
+      const textoItem = (item.getAttribute('data-busqueda') || "").toLowerCase();
 
       const coincideAnio = (anioFiltro === 'Todos' || anio === anioFiltro);
       const coincidePeriodo = (periodoFiltro === 'Todos' || periodoCompleto.includes(periodoFiltro));
+      const coincideBusq = (!textoBusq || textoItem.includes(textoBusq));
 
-      if (coincideAnio && coincidePeriodo) {
+      if (coincideAnio && coincidePeriodo && coincideBusq) {
         item.style.display = '';
       } else {
         item.style.display = 'none';

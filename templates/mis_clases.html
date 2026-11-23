@@ -133,9 +133,9 @@
   {% if clases %}
   <div class="mb-4 fade-in-up delay-1 d-flex flex-wrap align-items-center justify-content-between gap-3" style="background: transparent;">
     
-    <div class="position-relative" style="width: 100%; max-width: 380px;">
+    <div class="position-relative" style="width: 100%; max-width: 400px;">
       <i class="bi bi-search text-muted position-absolute" style="left: 16px; top: 50%; transform: translateY(-50%);"></i>
-      <input type="text" id="buscadorClases" class="form-control-pro bg-white w-100" placeholder="Buscar por nombre o código..." onkeyup="filtrarClases()" style="border: 1px solid #E2E8F0; border-radius: 25px; padding: 0.5rem 1rem 0.5rem 2.5rem; font-size: 0.85rem; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+      <input type="text" id="buscadorClases" class="form-control-pro bg-white w-100" placeholder="Buscar por ID (#24), nombre, código o sección..." onkeyup="filtrarClases()" style="border: 1px solid #E2E8F0; border-radius: 25px; padding: 0.5rem 1rem 0.5rem 2.5rem; font-size: 0.85rem; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
     </div>
 
     <div class="d-flex flex-wrap align-items-center gap-3">
@@ -173,7 +173,8 @@
     {% endif %}
     
     {% set cat_item = clase.categoria_actividad or 'Clase' %}
-    <div class="col-md-6 col-lg-4 col-xl-3 fade-in-up delay-1 clase-item" data-nombre="{{ clase.nombre_espacio }}" data-codigo="{{ clase.codigo or '' }}" data-periodo="{{ clase.periodo }}" data-categoria="{{ cat_item }}">
+    {% set folio_item = '%04d' | format(clase.id) %}
+    <div class="col-md-6 col-lg-4 col-xl-3 fade-in-up delay-1 clase-item" data-id="{{ clase.id }}" data-folio="id #{{ folio_item }} #{{ clase.id }} {{ folio_item }}" data-nombre="{{ clase.nombre_espacio }}" data-codigo="{{ clase.codigo or '' }}" data-seccion="{{ clase.seccion or '' }}" data-periodo="{{ clase.periodo }}" data-categoria="{{ cat_item }}">
       <a href="{{ url_for('detalle_clase', clase_id=clase.id) }}" style="text-decoration: none; color: inherit; display: block;">
         
         <div class="card-pro" style="background: white; border-radius: 10px; border: 1px solid #E2E8F0; border-top: 4px solid {% if cat_item == 'Investigación' %}#7C3AED{% elif cat_item == 'Vinculación' %}#059669{% elif cat_item == 'Desarrollo Curricular' %}#D97706{% elif cat_item == 'Otra' %}#475569{% else %}var(--azul-claro){% endif %}; position: relative; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.03); transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 12px -3px rgba(0,0,0,0.08)';" onmouseout="this.style.transform='none'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.03)';">
@@ -197,9 +198,12 @@
             
             <div class="d-flex align-items-center gap-2 mb-2">
               <div style="font-size: 1.5rem; color: #FBBF24; line-height: 1;"><i class="bi bi-folder-fill"></i></div>
-              <div style="flex: 1; min-width: 0; padding-right: 50px;">
+              <div style="flex: 1; min-width: 0; padding-right: 45px;">
+                <div class="d-flex align-items-center gap-1 mb-1">
+                  <span style="background: #0F172A; color: #F8FAFC; font-size: 0.62rem; font-weight: 800; padding: 0.12rem 0.42rem; border-radius: 4px; letter-spacing: 0.03em;">ID #{{ folio_item }}</span>
+                  <span style="color: #64748B; font-size: 0.7rem; font-weight: 600;">{{ clase.codigo or 'S/C' }}</span>
+                </div>
                 <h6 style="color: var(--azul-oscuro); font-weight: 800; margin: 0; font-size: 0.9rem; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;" title="{{ clase.nombre_espacio }}">{{ clase.nombre_espacio }}</h6>
-                <div style="color: #64748B; font-size: 0.7rem; font-weight: 600; margin-top: 0.1rem;"># {{ clase.codigo or 'S/C' }}</div>
               </div>
             </div>
             
@@ -207,6 +211,11 @@
               <span style="display: inline-block; padding: 0.2rem 0.5rem; border-radius: 4px; background: {% if cat_item == 'Investigación' %}#F5F3FF; border: 1px solid #DDD6FE; color: #6D28D9{% elif cat_item == 'Vinculación' %}#ECFDF5; border: 1px solid #A7F3D0; color: #047857{% elif cat_item == 'Desarrollo Curricular' %}#FFFBEB; border: 1px solid #FDE68A; color: #B45309{% elif cat_item == 'Otra' %}#F1F5F9; border: 1px solid #CBD5E1; color: #334155{% else %}#EFF6FF; border: 1px solid #BFDBFE; color: #1D4ED8{% endif %}; font-size: 0.68rem; font-weight: 700;">
                 {{ cat_item }}
               </span>
+              {% if clase.seccion %}
+              <span style="display: inline-block; padding: 0.2rem 0.5rem; border-radius: 4px; background: #FEF3C7; border: 1px solid #FDE68A; color: #92400E; font-size: 0.68rem; font-weight: 800;">
+                <i class="bi bi-clock-fill me-1"></i>Sec. {{ clase.seccion }}
+              </span>
+              {% endif %}
               <span style="display: inline-block; padding: 0.2rem 0.5rem; border-radius: 4px; background: #F0F9FF; border: 1px solid #BAE6FD; color: #0284C7; font-size: 0.7rem; font-weight: 700;">
                 <i class="bi bi-calendar3 me-1"></i>{{ clase.periodo }}
               </span>
@@ -280,11 +289,12 @@
                       data-categoria="{{ c.categoria_actividad or 'Clase' }}"
                       data-nombre="{{ c.nombre_espacio }}"
                       data-codigo="{{ c.codigo or '' }}"
+                      data-seccion="{{ c.seccion or '' }}"
                       data-uv="{{ c.uv_ca or '' }}"
                       data-modalidad="{{ c.modalidad or '' }}"
                       data-naturaleza="{{ c.naturaleza or '' }}"
                       data-evidencias="{{ c.total_evidencias }}">
-                [{{ c.categoria_actividad or 'Clase' }}] {{ c.nombre_espacio }}{% if c.codigo %} ({{ c.codigo }}){% endif %} · {{ c.periodo }}
+                [ID #{{ '%04d' | format(c.id) }} · {{ c.categoria_actividad or 'Clase' }}] {{ c.nombre_espacio }}{% if c.codigo %} ({{ c.codigo }}){% endif %}{% if c.seccion %} · Sec. {{ c.seccion }}{% endif %} · {{ c.periodo }}
               </option>
               {% endfor %}
             </select>
@@ -337,6 +347,10 @@
             <div class="col-md-6">
               <label class="form-label-pro" id="lbl_codigo_espacio">Código / Registro (Opcional)</label>
               <input type="text" name="codigo" id="nueva_codigo" class="form-control-pro bg-white" placeholder="Ej. EG-011">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label-pro" id="lbl_seccion_espacio">Sección / Horario (Opcional)</label>
+              <input type="text" name="seccion" id="nueva_seccion" class="form-control-pro bg-white" placeholder="Ej. 0700, 1000 o Grupo A">
             </div>
             <div class="col-md-6" id="wrap_nueva_uv">
               <label class="form-label-pro">UV / CA (Opcional)</label>
@@ -426,6 +440,7 @@
     if (!sel.value) {
       document.getElementById('nueva_nombre_espacio').value = '';
       document.getElementById('nueva_codigo').value = '';
+      if (document.getElementById('nueva_seccion')) document.getElementById('nueva_seccion').value = '';
       document.getElementById('nueva_uv_ca').value = '';
       document.getElementById('nueva_modalidad').selectedIndex = 0;
       document.getElementById('nueva_naturaleza').selectedIndex = 0;
@@ -441,6 +456,7 @@
     }
     document.getElementById('nueva_nombre_espacio').value = opt.getAttribute('data-nombre') || '';
     document.getElementById('nueva_codigo').value = opt.getAttribute('data-codigo') || '';
+    if (document.getElementById('nueva_seccion')) document.getElementById('nueva_seccion').value = opt.getAttribute('data-seccion') || '';
     document.getElementById('nueva_uv_ca').value = opt.getAttribute('data-uv') || '';
     const mod = opt.getAttribute('data-modalidad') || '';
     const nat = opt.getAttribute('data-naturaleza') || '';
@@ -515,11 +531,13 @@
     tarjetas.forEach(tarjeta => {
       const nombre = (tarjeta.getAttribute('data-nombre') || '').toLowerCase();
       const codigo = (tarjeta.getAttribute('data-codigo') || '').toLowerCase();
+      const seccion = (tarjeta.getAttribute('data-seccion') || '').toLowerCase();
+      const folio = (tarjeta.getAttribute('data-folio') || '').toLowerCase();
       const periodo = (tarjeta.getAttribute('data-periodo') || '').toLowerCase();
       const anio = tarjeta.getAttribute('data-anio');
       const categoria = tarjeta.getAttribute('data-categoria') || 'Clase';
 
-      const coincideTexto = nombre.includes(textoBusqueda) || codigo.includes(textoBusqueda) || periodo.includes(textoBusqueda) || categoria.toLowerCase().includes(textoBusqueda);
+      const coincideTexto = nombre.includes(textoBusqueda) || codigo.includes(textoBusqueda) || seccion.includes(textoBusqueda) || folio.includes(textoBusqueda) || periodo.includes(textoBusqueda) || categoria.toLowerCase().includes(textoBusqueda);
       const coincideAnio = (anioFiltro === 'Todos') || (anio === anioFiltro);
       const coincideCat = (catFiltro === 'Todas') || (categoria === catFiltro);
 
