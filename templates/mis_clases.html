@@ -84,7 +84,7 @@
     {% endfor %}
   {% endwith %}
 
-  <div class="d-flex justify-content-between align-items-center mb-4 fade-in-up flex-wrap gap-2">
+  <div class="d-flex justify-content-between align-items-center mb-4 fade-in-up flex-wrap gap-2" style="position: relative; z-index: 50;">
     <div>
       <h3 style="color: var(--azul-oscuro); font-weight: 800; margin-bottom: 0.2rem;"><i class="bi bi-folder2-open me-2" style="color:var(--dorado);"></i>Mis Clases y Asignaciones</h3>
       <p class="text-muted" style="font-size: 0.9rem; margin: 0;">Gestiona tus evidencias de docencia, investigación, vinculación y desarrollo curricular.</p>
@@ -93,7 +93,7 @@
       <button class="btn-primary-pro dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="width: auto; padding: 0.55rem 1.25rem; font-size: 0.9rem; margin-top: 0;">
         <i class="bi bi-plus-lg me-1"></i> Nueva Asignación
       </button>
-      <ul class="dropdown-menu dropdown-menu-end shadow border-0 p-2" style="border-radius: 14px; min-width: 240px;">
+      <ul class="dropdown-menu dropdown-menu-end shadow-lg border p-2" style="border-radius: 14px; min-width: 265px; z-index: 1060; background: #FFFFFF; border-color: var(--borde) !important;">
         <li class="px-2 py-1"><small class="text-muted fw-bold" style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em;">Selecciona la categoría</small></li>
         <li>
           <a class="dropdown-item rounded-2 py-2 d-flex align-items-center gap-2" href="#" onclick="abrirModalNuevaAsignacion('Clase'); return false;">

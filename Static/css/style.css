@@ -498,7 +498,7 @@ h1, h2, h3, h4, h5, h6, .brand-text, .clase-titulo, .kpi-info h3 {
 /* ── Animaciones de entrada ───────────────────────── */
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(16px); }
-  to   { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: none; }
 }
 .fade-in-up { animation: fadeInUp .45s ease both; }
 .delay-1 { animation-delay: .08s; }
