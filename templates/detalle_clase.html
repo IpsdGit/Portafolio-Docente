@@ -637,14 +637,33 @@
     const linksOcultar = area.querySelectorAll('.ocultar-en-informe-pdf');
     linksOcultar.forEach(el => el.style.display = 'none');
 
+    const prevWidth = area.style.width;
+    const prevMaxWidth = area.style.maxWidth;
+    const prevMargin = area.style.margin;
+    const prevPadding = area.style.padding;
+
+    window.scrollTo(0, 0);
+    area.style.width = '680px';
+    area.style.maxWidth = '680px';
+    area.style.margin = '0';
+    area.style.padding = '1.25rem 1.5rem 1.25rem 1.25rem';
+
     const opciones = {
       margin:       [0.45, 0.45, 0.6, 0.45],
       filename:     'Informe_{{ (clase.categoria_actividad or "Clase") | replace(" ", "_") }}_{{ clase.nombre_espacio | replace(" ", "_") }}.pdf',
       image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true, letterRendering: true, scrollY: 0 },
+      html2canvas:  { scale: 2, useCORS: true, letterRendering: true, scrollX: 0, scrollY: 0, windowWidth: 720 },
       jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' },
       pagebreak:    { mode: ['css', 'legacy'], avoid: ['tr', '.p-3'] }
     };
+
+    function restaurarEstiloArea() {
+      linksOcultar.forEach(el => el.style.display = '');
+      area.style.width = prevWidth;
+      area.style.maxWidth = prevMaxWidth;
+      area.style.margin = prevMargin;
+      area.style.padding = prevPadding;
+    }
 
     html2pdf()
       .set(opciones)
@@ -667,12 +686,8 @@
         }
       })
       .save()
-      .then(function () {
-        linksOcultar.forEach(el => el.style.display = '');
-      })
-      .catch(function () {
-        linksOcultar.forEach(el => el.style.display = '');
-      });
+      .then(restaurarEstiloArea)
+      .catch(restaurarEstiloArea);
   }
 
   function abrirModalSubir(tipoEvidencia) {

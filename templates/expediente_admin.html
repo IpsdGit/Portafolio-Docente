@@ -15,12 +15,15 @@
   /* ── Maquetación Institucional para Exportación PDF / Impresión ── */
   #documento-pdf-institucional {
     display: none;
-    width: 740px;
-    margin: 0 auto;
+    width: 680px;
+    max-width: 100%;
+    margin: 0;
+    padding: 4px 10px 4px 4px;
+    box-sizing: border-box;
     background: #FFFFFF;
     color: #0F172A;
     font-family: 'Inter', Arial, sans-serif;
-    font-size: 11.5px;
+    font-size: 11px;
     line-height: 1.45;
   }
   .pdf-no-break,
@@ -795,13 +798,14 @@
       btnPdf.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Generando PDF...';
     }
 
+    window.scrollTo(0, 0);
     docPdf.style.display = 'block';
 
     const opciones = {
       margin:       [0.45, 0.45, 0.6, 0.45],
       filename:     'Expediente_UNAH_{{ docente.nombre | replace(" ", "_") }}.pdf',
       image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true, letterRendering: true, scrollY: 0 },
+      html2canvas:  { scale: 2, useCORS: true, letterRendering: true, scrollX: 0, scrollY: 0, windowWidth: 720 },
       jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' },
       pagebreak:    { mode: ['css', 'legacy'], avoid: ['.pdf-no-break', 'tr', '.pdf-card-bloque', '.pdf-firmas-bloque', '.pdf-seccion-titulo'] }
     };
