@@ -130,30 +130,114 @@ try:
     _conn.close()
 except Exception as e: print("Error en parche V3 tablas:", e)
 
-for _col_u in ['carrera_id INTEGER', 'cargo_admin TEXT']:
+for _col_u in ['carrera_id INTEGER', 'cargo_admin TEXT', 'fecha_inicio_cargo TEXT']:
     try:
         _conn = sqlite3.connect(DB_PATH)
         _conn.execute(f"ALTER TABLE Usuarios ADD COLUMN {_col_u}")
         _conn.commit()
         _conn.close()
     except: pass
+
+# Parche V4: Categoría laboral en MisClases, categoría en CatalogoEvidencias e HistorialCargosDocente
+try:
+    _conn = sqlite3.connect(DB_PATH)
+    _conn.execute("ALTER TABLE MisClases ADD COLUMN categoria_actividad TEXT DEFAULT 'Clase'")
+    _conn.commit()
+    _conn.close()
+except: pass
+
+try:
+    _conn = sqlite3.connect(DB_PATH)
+    _conn.execute("""
+        CREATE TABLE IF NOT EXISTS HistorialCargosDocente (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            usuario_id INTEGER NOT NULL,
+            cargo TEXT NOT NULL,
+            carrera_nombre TEXT DEFAULT '',
+            fecha_inicio TEXT DEFAULT '',
+            fecha_fin TEXT DEFAULT '',
+            observacion TEXT DEFAULT '',
+            fecha_registro TEXT DEFAULT ''
+        )
+    """)
+    # Migrar CatalogoEvidencias para soportar columna 'categoria' con UNIQUE(categoria, nombre)
+    _cols_cat = [r[1] for r in _conn.execute("PRAGMA table_info(CatalogoEvidencias)").fetchall()]
+    if 'categoria' not in _cols_cat:
+        _conn.execute("""
+            CREATE TABLE IF NOT EXISTS CatalogoEvidencias_new (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                categoria TEXT NOT NULL DEFAULT 'Clase',
+                nombre TEXT NOT NULL,
+                activo INTEGER DEFAULT 1,
+                UNIQUE(categoria, nombre)
+            )
+        """)
+        _conn.execute("INSERT OR IGNORE INTO CatalogoEvidencias_new (id, categoria, nombre, activo) SELECT id, 'Clase', nombre, activo FROM CatalogoEvidencias")
+        _conn.execute("DROP TABLE CatalogoEvidencias")
+        _conn.execute("ALTER TABLE CatalogoEvidencias_new RENAME TO CatalogoEvidencias")
+    _conn.commit()
+    _conn.close()
+except Exception as e: print("Error en parche V4:", e)
 # ------------------------------------------------------------------------
 
 TIPOS_FORMACION = ['Taller', 'Seminario', 'Diplomado', 'Posgrado', 'Congreso', 'Jornada Pedagógica', 'Curso en Línea (MOOC)', 'Práctica Docente', 'Otro']
 TIPOS_EVIDENCIA = ['Planificación Didáctica', 'Material Didáctico', 'Instrumento de Evaluación (Rúbricas, Ejercicios, Proyectos)', 'Asignaciones para Estudiantes (Tareas, Ejercicios, Talleres)', 'Evidencias Fotográficas (Talleres, Trabajos de Campo)', 'Evaluación Docente', 'Bibliografía', 'Registro de Calificaciones', 'Actividades de Vinculación', 'Actividades de Investigación', 'Horas de Tutoría', 'Otras Actividades']
+
+CATEGORIAS_ACTIVIDAD = ['Clase', 'Investigación', 'Vinculación', 'Desarrollo Curricular', 'Otra']
+EVIDENCIAS_BASE_POR_CATEGORIA = {
+    'Clase': TIPOS_EVIDENCIA,
+    'Investigación': [
+        'Propuesta o Protocolo de Investigación',
+        'Aval o Registro Institucional (DICU / Coordinación)',
+        'Cronograma y Plan de Trabajo',
+        'Instrumentos de Recolección de Datos',
+        'Avances o Informes Parciales',
+        'Evidencias de Trabajo de Campo / Laboratorio',
+        'Artículo Científico, Ponencia o Manuscrito',
+        'Informe Final de Investigación'
+    ],
+    'Vinculación': [
+        'Ficha o Perfil del Proyecto de Vinculación',
+        'Carta de Intención, Convenio o Solicitud de Contraparte',
+        'Plan de Trabajo y Cronograma',
+        'Listado de Participantes / Estudiantes Involucrados',
+        'Registro Fotográfico y Memoria de Actividades',
+        'Evaluación de Impacto o Satisfacción de Beneficiarios',
+        'Constancia o Finiquito de la Institución Beneficiaria',
+        'Informe Final de Vinculación Universidad-Sociedad'
+    ],
+    'Desarrollo Curricular': [
+        'Designación o Nombramiento en Comisión Curricular',
+        'Diagnóstico o Estudio de Pertinencia Curricular',
+        'Actas y Minutas de Sesiones de Trabajo',
+        'Matriz o Propuesta de Rediseño / Plan de Estudios',
+        'Programas Analíticos de Espacios de Aprendizaje',
+        'Validación con Actores Internos / Externos',
+        'Dictamen o Entrega de Documento Curricular Final'
+    ],
+    'Otra': [
+        'Oficio, Nombramiento o Asignación de Carga',
+        'Plan de Trabajo / Cronograma de Actividades',
+        'Actas, Informes Parciales o Entregables',
+        'Evidencias Documentales o Fotográficas',
+        'Constancia de Cumplimiento o Informe Final'
+    ]
+}
+
 NATURALEZA_OPTS   = ['Teórica', 'Práctica', 'Mixta', 'Laboratorio']
 MODALIDAD_OPTS    = ['Presencial', 'Virtual', 'B-learning', 'Teledocencia']
 RESPONSABILIDAD_OPTS = ['Ninguna', 'Jefe de Departamento', 'Coordinador de Carrera', 'Ambas', 'Otros']
 CARGOS_ADMIN_OPTS = ['Jefe de Departamento', 'Coordinador de Carrera']
 
-# Sembrar CatalogoEvidencias con las 12 categorías base si está vacío
+# Sembrar CatalogoEvidencias por cada categoría laboral si esa categoría aún no tiene registros
 try:
     _conn = sqlite3.connect(DB_PATH)
-    _cnt = _conn.execute("SELECT COUNT(*) FROM CatalogoEvidencias").fetchone()[0]
-    if _cnt == 0:
-        for _t in TIPOS_EVIDENCIA:
-            _conn.execute("INSERT OR IGNORE INTO CatalogoEvidencias (nombre, activo) VALUES (?, 1)", (_t,))
-        _conn.commit()
+    for _cat_key, _lista_ev in EVIDENCIAS_BASE_POR_CATEGORIA.items():
+        _cnt = _conn.execute("SELECT COUNT(*) FROM CatalogoEvidencias WHERE categoria = ?", (_cat_key,)).fetchone()[0]
+        if _cnt == 0:
+            for _t in _lista_ev:
+                _conn.execute("INSERT OR IGNORE INTO CatalogoEvidencias (categoria, nombre, activo) VALUES (?, ?, 1)", (_cat_key, _t))
+    _conn.commit()
     _conn.close()
 except Exception as e: print("Error sembrando CatalogoEvidencias:", e)
 
@@ -187,16 +271,25 @@ SUPER_ADMIN_EMAILS = ['bayron@unah.edu.hn', 'admin@unah.edu.hn']
 def es_superadmin():
     return session.get('correo') in SUPER_ADMIN_EMAILS
 
-def obtener_catalogo_evidencias(con, solo_activos=True):
+def obtener_catalogo_evidencias(con, solo_activos=True, categoria=None):
+    conds, params = [], []
     if solo_activos:
-        return con.execute("SELECT * FROM CatalogoEvidencias WHERE activo = 1 ORDER BY id ASC").fetchall()
-    return con.execute("SELECT * FROM CatalogoEvidencias ORDER BY id ASC").fetchall()
+        conds.append("activo = 1")
+    if categoria:
+        conds.append("categoria = ?")
+        params.append(categoria)
+    where_sql = (" WHERE " + " AND ".join(conds)) if conds else ""
+    return con.execute(f"SELECT * FROM CatalogoEvidencias{where_sql} ORDER BY id ASC", params).fetchall()
 
 def obtener_tipos_clase(con, clase_id):
     filas = con.execute("SELECT nombre FROM ClaseTiposEvidencia WHERE clase_id = ? ORDER BY id ASC", (clase_id,)).fetchall()
     if not filas:
-        catalogo = obtener_catalogo_evidencias(con, solo_activos=True)
-        nombres_base = [r['nombre'] for r in catalogo] if catalogo else list(TIPOS_EVIDENCIA)
+        row_c = con.execute("SELECT categoria_actividad FROM MisClases WHERE id = ?", (clase_id,)).fetchone()
+        cat_act = (row_c['categoria_actividad'] if row_c and 'categoria_actividad' in row_c.keys() and row_c['categoria_actividad'] else 'Clase')
+        if cat_act not in CATEGORIAS_ACTIVIDAD:
+            cat_act = 'Clase'
+        catalogo = obtener_catalogo_evidencias(con, solo_activos=True, categoria=cat_act)
+        nombres_base = [r['nombre'] for r in catalogo] if catalogo else list(EVIDENCIAS_BASE_POR_CATEGORIA.get(cat_act, TIPOS_EVIDENCIA))
         for nom in nombres_base:
             con.execute("INSERT OR IGNORE INTO ClaseTiposEvidencia (clase_id, nombre) VALUES (?, ?)", (clase_id, nom))
         con.commit()
@@ -255,7 +348,7 @@ def admin_puede_ver_docente(con, scope, docente_id):
 # Inyectar variables globales en los templates
 @app.context_processor
 def inject_superadmin():
-    return dict(es_superadmin=es_superadmin(), super_admin_emails=SUPER_ADMIN_EMAILS)
+    return dict(es_superadmin=es_superadmin(), super_admin_emails=SUPER_ADMIN_EMAILS, categorias_actividad=CATEGORIAS_ACTIVIDAD)
 
 def subir_a_firebase(archivo, carpeta):
     from werkzeug.utils import secure_filename
@@ -491,9 +584,10 @@ def ver_perfil():
         con = obtener_conexion()
         perfil = con.execute("SELECT * FROM PerfilDocente WHERE usuario_id=?", (uid,)).fetchone()
         titulos = con.execute("SELECT * FROM TitulosDocente WHERE usuario_id=? ORDER BY id ASC", (uid,)).fetchall()
+        historial_cargos = con.execute("SELECT * FROM HistorialCargosDocente WHERE usuario_id=? ORDER BY id DESC", (uid,)).fetchall()
         con.close()
-    except Exception: perfil, titulos = None, []
-    return render_template('perfil.html', nombre=session['nombre'], perfil=perfil, titulos=titulos, responsabilidad_opts=RESPONSABILIDAD_OPTS)
+    except Exception: perfil, titulos, historial_cargos = None, [], []
+    return render_template('perfil.html', nombre=session['nombre'], perfil=perfil, titulos=titulos, responsabilidad_opts=RESPONSABILIDAD_OPTS, historial_cargos=historial_cargos)
 
 @app.route('/docente/perfil/titulo', methods=['POST'])
 def agregar_titulo():
@@ -670,6 +764,9 @@ def mis_clases():
 def nueva_clase():
     if not requiere_login(rol='Docente'): return redirect(url_for('login'))
     uid = session['usuario_id']
+    categoria_actividad = request.form.get('categoria_actividad', 'Clase').strip()
+    if categoria_actividad not in CATEGORIAS_ACTIVIDAD:
+        categoria_actividad = 'Clase'
     periodo_tipo = request.form.get('periodo_tipo', '').strip()
     periodo_anio = request.form.get('periodo_anio', '').strip()
     periodo = f"{periodo_tipo} {periodo_anio}".strip()
@@ -678,12 +775,12 @@ def nueva_clase():
     duplicar_evidencias = request.form.get('duplicar_evidencias') == '1'
 
     if not periodo_tipo or not periodo_anio or not nombre_espacio:
-        flash('El período, año y nombre del espacio son obligatorios.', 'warning')
+        flash('El período, año y nombre de la asignación son obligatorios.', 'warning')
         return redirect(url_for('mis_clases'))
     try:
         con = obtener_conexion()
-        cur = con.execute("INSERT INTO MisClases (usuario_id, periodo, nombre_espacio, codigo, naturaleza, modalidad, uv_ca) VALUES (?,?,?,?,?,?,?)", 
-                          (uid, periodo, nombre_espacio, request.form.get('codigo', '').strip(), request.form.get('naturaleza', ''), request.form.get('modalidad', ''), request.form.get('uv_ca', '').strip()))
+        cur = con.execute("INSERT INTO MisClases (usuario_id, categoria_actividad, periodo, nombre_espacio, codigo, naturaleza, modalidad, uv_ca) VALUES (?,?,?,?,?,?,?,?)", 
+                          (uid, categoria_actividad, periodo, nombre_espacio, request.form.get('codigo', '').strip(), request.form.get('naturaleza', ''), request.form.get('modalidad', ''), request.form.get('uv_ca', '').strip()))
         nueva_id = cur.lastrowid
 
         origen_valido = None
@@ -691,7 +788,7 @@ def nueva_clase():
             origen_valido = con.execute("SELECT id FROM MisClases WHERE id=? AND usuario_id=?", (int(clase_origen_id), uid)).fetchone()
 
         if origen_valido:
-            # Copiar las categorías configuradas de la clase origen
+            # Copiar las categorías configuradas de la asignación origen
             tipos_origen = obtener_tipos_clase(con, origen_valido['id'])
             for t in tipos_origen:
                 con.execute("INSERT OR IGNORE INTO ClaseTiposEvidencia (clase_id, nombre) VALUES (?, ?)", (nueva_id, t))
@@ -704,23 +801,23 @@ def nueva_clase():
                         (nueva_id, ev['tipo_evidencia'], ev['nombre'], ev['url_archivo'])
                     )
         else:
-            # Inicializar con el catálogo global activo
-            catalogo = obtener_catalogo_evidencias(con, solo_activos=True)
-            nombres_base = [r['nombre'] for r in catalogo] if catalogo else list(TIPOS_EVIDENCIA)
+            # Inicializar con el catálogo global activo de la categoría seleccionada
+            catalogo = obtener_catalogo_evidencias(con, solo_activos=True, categoria=categoria_actividad)
+            nombres_base = [r['nombre'] for r in catalogo] if catalogo else list(EVIDENCIAS_BASE_POR_CATEGORIA.get(categoria_actividad, TIPOS_EVIDENCIA))
             for nom in nombres_base:
                 con.execute("INSERT OR IGNORE INTO ClaseTiposEvidencia (clase_id, nombre) VALUES (?, ?)", (nueva_id, nom))
 
         con.commit()
         con.close()
         if origen_valido and duplicar_evidencias:
-            flash('¡Carpeta de clase replicada con sus evidencias anteriores!', 'success')
+            flash('¡Asignación replicada con sus evidencias anteriores!', 'success')
         elif origen_valido:
-            flash('¡Carpeta de clase replicada con éxito!', 'success')
+            flash('¡Asignación replicada con éxito!', 'success')
         else:
-            flash('¡Carpeta de clase creada!', 'success')
+            flash(f'¡Carpeta de {categoria_actividad} creada!', 'success')
         return redirect(url_for('detalle_clase', clase_id=nueva_id))
     except Exception as e:
-        flash(f'Error al crear la clase: {str(e)}', 'danger')
+        flash(f'Error al crear la asignación: {str(e)}', 'danger')
         return redirect(url_for('mis_clases'))
 
 @app.route('/docente/clases/<int:clase_id>')
@@ -757,13 +854,18 @@ def editar_clase(clase_id):
     periodo_tipo = request.form.get('periodo_tipo', '').strip()
     periodo_anio = request.form.get('periodo_anio', '').strip()
     periodo = f"{periodo_tipo} {periodo_anio}".strip()
+    categoria_actividad = request.form.get('categoria_actividad', '').strip()
     try:
         con = obtener_conexion()
-        con.execute("UPDATE MisClases SET periodo=?, nombre_espacio=?, codigo=?, naturaleza=?, modalidad=?, uv_ca=? WHERE id=? AND usuario_id=?", 
-                    (periodo, request.form.get('nombre_espacio', '').strip(), request.form.get('codigo', '').strip(), request.form.get('naturaleza', ''), request.form.get('modalidad', ''), request.form.get('uv_ca', '').strip(), clase_id, uid))
+        if categoria_actividad in CATEGORIAS_ACTIVIDAD:
+            con.execute("UPDATE MisClases SET categoria_actividad=?, periodo=?, nombre_espacio=?, codigo=?, naturaleza=?, modalidad=?, uv_ca=? WHERE id=? AND usuario_id=?", 
+                        (categoria_actividad, periodo, request.form.get('nombre_espacio', '').strip(), request.form.get('codigo', '').strip(), request.form.get('naturaleza', ''), request.form.get('modalidad', ''), request.form.get('uv_ca', '').strip(), clase_id, uid))
+        else:
+            con.execute("UPDATE MisClases SET periodo=?, nombre_espacio=?, codigo=?, naturaleza=?, modalidad=?, uv_ca=? WHERE id=? AND usuario_id=?", 
+                        (periodo, request.form.get('nombre_espacio', '').strip(), request.form.get('codigo', '').strip(), request.form.get('naturaleza', ''), request.form.get('modalidad', ''), request.form.get('uv_ca', '').strip(), clase_id, uid))
         con.commit()
         con.close()
-        flash('¡Clase actualizada!', 'success')
+        flash('¡Asignación actualizada!', 'success')
     except: flash('Error al actualizar.', 'danger')
     return redirect(url_for('detalle_clase', clase_id=clase_id))
 
@@ -1092,18 +1194,21 @@ def evaluar_evidencia(ev_id):
 def agregar_catalogo_evidencia():
     if not requiere_login(rol='Administrador'): return redirect(url_for('login'))
     nombre_cat = request.form.get('nombre_categoria', '').strip()
+    categoria = request.form.get('categoria', 'Clase').strip()
+    if categoria not in CATEGORIAS_ACTIVIDAD:
+        categoria = 'Clase'
     if not nombre_cat:
         flash('Debes ingresar un nombre para la categoría de evidencia.', 'warning')
         return redirect(request.referrer or url_for('panel_admin'))
     try:
         con = obtener_conexion()
-        existente = con.execute("SELECT id, activo FROM CatalogoEvidencias WHERE LOWER(nombre) = LOWER(?)", (nombre_cat,)).fetchone()
+        existente = con.execute("SELECT id, activo FROM CatalogoEvidencias WHERE categoria = ? AND LOWER(nombre) = LOWER(?)", (categoria, nombre_cat)).fetchone()
         if existente:
             con.execute("UPDATE CatalogoEvidencias SET activo = 1 WHERE id = ?", (existente['id'],))
-            flash(f'La categoría "{nombre_cat}" ya existía y fue activada en el catálogo.', 'info')
+            flash(f'La evidencia "{nombre_cat}" ya existía en {categoria} y fue activada.', 'info')
         else:
-            con.execute("INSERT INTO CatalogoEvidencias (nombre, activo) VALUES (?, 1)", (nombre_cat,))
-            flash(f'Categoría "{nombre_cat}" agregada al catálogo general de evidencias.', 'success')
+            con.execute("INSERT INTO CatalogoEvidencias (categoria, nombre, activo) VALUES (?, ?, 1)", (categoria, nombre_cat))
+            flash(f'Evidencia "{nombre_cat}" agregada al catálogo de {categoria}.', 'success')
         con.commit()
         con.close()
     except Exception as e:
@@ -1286,6 +1391,7 @@ def expediente_docente(docente_id):
             return redirect(url_for('panel_admin'))
         titulos = con.execute("SELECT * FROM TitulosDocente WHERE usuario_id=? ORDER BY id ASC", (docente_id,)).fetchall()
         certificados = con.execute("SELECT * FROM Documentos WHERE usuario_id = ? ORDER BY id DESC", (docente_id,)).fetchall()
+        historial_cargos = con.execute("SELECT * FROM HistorialCargosDocente WHERE usuario_id = ? ORDER BY id DESC", (docente_id,)).fetchall()
         clases_db = con.execute("SELECT * FROM MisClases WHERE usuario_id = ? ORDER BY fecha_creacion DESC", (docente_id,)).fetchall()
         catalogo_evidencias = obtener_catalogo_evidencias(con, solo_activos=True)
         clases = []
@@ -1299,7 +1405,7 @@ def expediente_docente(docente_id):
         horas_totales = sum(int(c['horas']) for c in certificados if c['estado'] == 'Aprobado')
         return render_template('expediente_admin.html', nombre=session['nombre'], docente=docente, titulos=titulos,
                                certificados=certificados, clases=clases, horas_totales=horas_totales,
-                               catalogo_evidencias=catalogo_evidencias)
+                               catalogo_evidencias=catalogo_evidencias, historial_cargos=historial_cargos)
     except: return redirect(url_for('panel_admin'))
 
 # ─────────────────────────────────────────────
@@ -1337,7 +1443,7 @@ def admin_usuarios():
         """).fetchall()
         admins = con.execute("""
             SELECT u.id, u.nombre, u.correo, u.activo, u.carrera_id, u.cargo_admin,
-                   c.nombre AS nombre_carrera
+                   u.fecha_inicio_cargo, c.nombre AS nombre_carrera
             FROM Usuarios u
             LEFT JOIN Carreras c ON u.carrera_id = c.id
             WHERE u.rol = 'Administrador'
@@ -1474,7 +1580,13 @@ def cambiar_rol_usuario(uid):
         return redirect(url_for('admin_usuarios'))
     try:
         con = obtener_conexion()
-        usuario = con.execute("SELECT nombre, rol, correo, carrera_id FROM Usuarios WHERE id=?", (uid,)).fetchone()
+        usuario = con.execute("""
+            SELECT u.nombre, u.rol, u.correo, u.carrera_id, u.cargo_admin, u.fecha_inicio_cargo,
+                   c.nombre AS nombre_carrera
+            FROM Usuarios u
+            LEFT JOIN Carreras c ON u.carrera_id = c.id
+            WHERE u.id = ?
+        """, (uid,)).fetchone()
         if not usuario:
             con.close()
             flash('Usuario no encontrado.', 'danger')
@@ -1484,10 +1596,12 @@ def cambiar_rol_usuario(uid):
             flash('No se puede degradar a una cuenta de Super Administrador.', 'warning')
             return redirect(url_for('admin_usuarios') + '#admins')
 
+        hoy_str = datetime.now().strftime('%Y-%m-%d')
         if nuevo_rol == 'Administrador':
             carrera_raw = request.form.get('carrera_id', '').strip()
             carrera_val = int(carrera_raw) if carrera_raw.isdigit() else usuario['carrera_id']
             cargo_admin = request.form.get('cargo_admin', '').strip()
+            fecha_inicio = request.form.get('fecha_inicio_cargo', '').strip() or hoy_str
             if not carrera_val or cargo_admin not in CARGOS_ADMIN_OPTS:
                 con.close()
                 flash('Debes seleccionar la Carrera y el Cargo (Jefe de Departamento o Coordinador de Carrera).', 'warning')
@@ -1500,17 +1614,32 @@ def cambiar_rol_usuario(uid):
                 con.close()
                 flash(f'El puesto de {cargo_admin} en esta carrera ya pertenece a {ocupado["nombre"]}. Cambia primero a esa persona al rol de Docente.', 'warning')
                 return redirect(url_for('admin_usuarios'))
-            con.execute("UPDATE Usuarios SET rol='Administrador', carrera_id=?, cargo_admin=? WHERE id=?", (carrera_val, cargo_admin, uid))
+            con.execute(
+                "UPDATE Usuarios SET rol='Administrador', carrera_id=?, cargo_admin=?, fecha_inicio_cargo=? WHERE id=?",
+                (carrera_val, cargo_admin, fecha_inicio, uid)
+            )
             con.commit()
             con.close()
             flash(f'¡{usuario["nombre"]} ha sido promovido a {cargo_admin} exitosamente!', 'success')
             return redirect(url_for('admin_usuarios') + '#admins')
         else:
+            # Registrar automáticamente en HistorialCargosDocente la evidencia de que ejerció como Jefe o Coordinador
+            cargo_ejercido = usuario['cargo_admin'] or 'Autoridad Académica'
+            carrera_ejercida = usuario['nombre_carrera'] or 'Carrera Universitaria'
+            fecha_ini = request.form.get('fecha_inicio_gestion', '').strip() or usuario['fecha_inicio_cargo'] or str(datetime.now().year)
+            fecha_fin = request.form.get('fecha_fin_gestion', '').strip() or hoy_str
+            observacion = request.form.get('observacion_gestion', '').strip() or 'Ejerció funciones de gestión y autoridad académica en este período (exento de carga completa de evidencias docentes).'
+
+            con.execute("""
+                INSERT INTO HistorialCargosDocente (usuario_id, cargo, carrera_nombre, fecha_inicio, fecha_fin, observacion, fecha_registro)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (uid, cargo_ejercido, carrera_ejercida, fecha_ini, fecha_fin, observacion, hoy_str))
+
             # Regresar a Docente conservando su carrera_id y liberando el cargo_admin
-            con.execute("UPDATE Usuarios SET rol='Docente', cargo_admin=NULL WHERE id=?", (uid,))
+            con.execute("UPDATE Usuarios SET rol='Docente', cargo_admin=NULL, fecha_inicio_cargo=NULL WHERE id=?", (uid,))
             con.commit()
             con.close()
-            flash(f'¡{usuario["nombre"]} ha vuelto al rol de Docente exitosamente!', 'success')
+            flash(f'¡{usuario["nombre"]} volvió al rol de Docente y se registró en su perfil la constancia de su gestión como {cargo_ejercido} ({fecha_ini} a {fecha_fin})!', 'success')
             return redirect(url_for('admin_usuarios') + '#admins')
     except Exception as e:
         flash(f'Error al cambiar el rol: {str(e)}', 'danger')
@@ -1601,9 +1730,10 @@ def crear_admin():
             flash(f'El cargo de {cargo_admin} en esa carrera ya está ocupado por {ocupado["nombre"]}.', 'warning')
             return redirect(url_for('admin_usuarios'))
         hashed = generate_password_hash(password)
+        hoy_str = datetime.now().strftime('%Y-%m-%d')
         con.execute(
-            "INSERT INTO Usuarios (nombre, correo, password, rol, activo, carrera_id, cargo_admin) VALUES (?,?,?,'Administrador',1,?,?)",
-            (nombre, correo, hashed, carrera_val, cargo_admin)
+            "INSERT INTO Usuarios (nombre, correo, password, rol, activo, carrera_id, cargo_admin, fecha_inicio_cargo) VALUES (?,?,?,'Administrador',1,?,?,?)",
+            (nombre, correo, hashed, carrera_val, cargo_admin, hoy_str)
         )
         con.commit()
         con.close()

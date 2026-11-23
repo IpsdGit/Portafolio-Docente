@@ -84,29 +84,76 @@
     {% endfor %}
   {% endwith %}
 
-  <div class="d-flex justify-content-between align-items-center mb-4 fade-in-up">
+  <div class="d-flex justify-content-between align-items-center mb-4 fade-in-up flex-wrap gap-2">
     <div>
-      <h3 style="color: var(--azul-oscuro); font-weight: 800; margin-bottom: 0.2rem;"><i class="bi bi-folder2-open me-2" style="color:var(--dorado);"></i>Mis Clases Overview</h3>
-      <p class="text-muted" style="font-size: 0.9rem; margin: 0;">Gestiona y audita tus espacios de aprendizaje académico.</p>
+      <h3 style="color: var(--azul-oscuro); font-weight: 800; margin-bottom: 0.2rem;"><i class="bi bi-folder2-open me-2" style="color:var(--dorado);"></i>Mis Clases y Asignaciones</h3>
+      <p class="text-muted" style="font-size: 0.9rem; margin: 0;">Gestiona tus evidencias de docencia, investigación, vinculación y desarrollo curricular.</p>
     </div>
-    <button class="btn-primary-pro" data-bs-toggle="modal" data-bs-target="#modalNuevaClase" style="width: auto; padding: 0.5rem 1.2rem; font-size: 0.9rem;">
-      <i class="bi bi-plus-lg me-1"></i> Nueva Clase
-    </button>
+    <div class="dropdown">
+      <button class="btn-primary-pro dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="width: auto; padding: 0.55rem 1.25rem; font-size: 0.9rem; margin-top: 0;">
+        <i class="bi bi-plus-lg me-1"></i> Nueva Asignación
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end shadow border-0 p-2" style="border-radius: 14px; min-width: 240px;">
+        <li class="px-2 py-1"><small class="text-muted fw-bold" style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em;">Selecciona la categoría</small></li>
+        <li>
+          <a class="dropdown-item rounded-2 py-2 d-flex align-items-center gap-2" href="#" onclick="abrirModalNuevaAsignacion('Clase'); return false;">
+            <i class="bi bi-easel2-fill" style="color: #2563EB;"></i>
+            <div><strong style="font-size: 0.86rem;">Clase</strong><small class="d-block text-muted" style="font-size: 0.72rem;">Espacio de aprendizaje / Docencia</small></div>
+          </a>
+        </li>
+        <li>
+          <a class="dropdown-item rounded-2 py-2 d-flex align-items-center gap-2" href="#" onclick="abrirModalNuevaAsignacion('Investigación'); return false;">
+            <i class="bi bi-journal-richtext" style="color: #7C3AED;"></i>
+            <div><strong style="font-size: 0.86rem;">Investigación</strong><small class="d-block text-muted" style="font-size: 0.72rem;">Proyectos y producción científica</small></div>
+          </a>
+        </li>
+        <li>
+          <a class="dropdown-item rounded-2 py-2 d-flex align-items-center gap-2" href="#" onclick="abrirModalNuevaAsignacion('Vinculación'); return false;">
+            <i class="bi bi-people-fill" style="color: #059669;"></i>
+            <div><strong style="font-size: 0.86rem;">Vinculación</strong><small class="d-block text-muted" style="font-size: 0.72rem;">Proyectos Universidad-Sociedad</small></div>
+          </a>
+        </li>
+        <li>
+          <a class="dropdown-item rounded-2 py-2 d-flex align-items-center gap-2" href="#" onclick="abrirModalNuevaAsignacion('Desarrollo Curricular'); return false;">
+            <i class="bi bi-diagram-3-fill" style="color: #D97706;"></i>
+            <div><strong style="font-size: 0.86rem;">Desarrollo Curricular</strong><small class="d-block text-muted" style="font-size: 0.72rem;">Diseño y rediseño de planes</small></div>
+          </a>
+        </li>
+        <li><hr class="dropdown-divider my-1"></li>
+        <li>
+          <a class="dropdown-item rounded-2 py-2 d-flex align-items-center gap-2" href="#" onclick="abrirModalNuevaAsignacion('Otra'); return false;">
+            <i class="bi bi-folder-plus" style="color: #475569;"></i>
+            <div><strong style="font-size: 0.86rem;">Otra</strong><small class="d-block text-muted" style="font-size: 0.72rem;">Comisiones u otras asignaciones</small></div>
+          </a>
+        </li>
+      </ul>
+    </div>
   </div>
 
   {% if clases %}
   <div class="mb-4 fade-in-up delay-1 d-flex flex-wrap align-items-center justify-content-between gap-3" style="background: transparent;">
     
-    <div class="position-relative" style="width: 100%; max-width: 400px;">
+    <div class="position-relative" style="width: 100%; max-width: 380px;">
       <i class="bi bi-search text-muted position-absolute" style="left: 16px; top: 50%; transform: translateY(-50%);"></i>
-      <input type="text" id="buscadorClases" class="form-control-pro bg-white w-100" placeholder="Buscar por asignatura o código..." onkeyup="filtrarClases()" style="border: 1px solid #E2E8F0; border-radius: 25px; padding: 0.5rem 1rem 0.5rem 2.5rem; font-size: 0.85rem; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+      <input type="text" id="buscadorClases" class="form-control-pro bg-white w-100" placeholder="Buscar por nombre o código..." onkeyup="filtrarClases()" style="border: 1px solid #E2E8F0; border-radius: 25px; padding: 0.5rem 1rem 0.5rem 2.5rem; font-size: 0.85rem; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
     </div>
 
-    <div class="d-flex align-items-center gap-2">
-      <label for="filtroAnio" class="text-muted" style="font-size: 0.8rem; font-weight: 600;"><i class="bi bi-funnel-fill me-1"></i>Año Académico:</label>
-      <select id="filtroAnio" class="form-control-pro bg-white" onchange="filtrarClases()" style="border: 1px solid #E2E8F0; border-radius: 8px; padding: 0.4rem 0.8rem; min-width: 100px; font-size: 0.85rem; font-weight: 600; color: var(--azul-oscuro); box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
-        <option value="Todos">Todos</option>
-      </select>
+    <div class="d-flex flex-wrap align-items-center gap-3">
+      <div class="d-flex align-items-center gap-2">
+        <label for="filtroCategoria" class="text-muted" style="font-size: 0.8rem; font-weight: 600;"><i class="bi bi-grid-fill me-1"></i>Categoría:</label>
+        <select id="filtroCategoria" class="form-control-pro bg-white" onchange="filtrarClases()" style="border: 1px solid #E2E8F0; border-radius: 8px; padding: 0.4rem 0.8rem; min-width: 130px; font-size: 0.85rem; font-weight: 600; color: var(--azul-oscuro); box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+          <option value="Todas">Todas</option>
+          {% for cat_opt in categorias_actividad %}
+          <option value="{{ cat_opt }}">{{ cat_opt }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <label for="filtroAnio" class="text-muted" style="font-size: 0.8rem; font-weight: 600;"><i class="bi bi-funnel-fill me-1"></i>Año Académico:</label>
+        <select id="filtroAnio" class="form-control-pro bg-white" onchange="filtrarClases()" style="border: 1px solid #E2E8F0; border-radius: 8px; padding: 0.4rem 0.8rem; min-width: 100px; font-size: 0.85rem; font-weight: 600; color: var(--azul-oscuro); box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+          <option value="Todos">Todos</option>
+        </select>
+      </div>
     </div>
   </div>
   {% endif %}
@@ -125,10 +172,11 @@
       {% set color_progreso = '#EF4444' %} {% set texto_progreso = 'Bajo' %}
     {% endif %}
     
-    <div class="col-md-6 col-lg-4 col-xl-3 fade-in-up delay-1 clase-item" data-nombre="{{ clase.nombre_espacio }}" data-codigo="{{ clase.codigo or '' }}" data-periodo="{{ clase.periodo }}">
+    {% set cat_item = clase.categoria_actividad or 'Clase' %}
+    <div class="col-md-6 col-lg-4 col-xl-3 fade-in-up delay-1 clase-item" data-nombre="{{ clase.nombre_espacio }}" data-codigo="{{ clase.codigo or '' }}" data-periodo="{{ clase.periodo }}" data-categoria="{{ cat_item }}">
       <a href="{{ url_for('detalle_clase', clase_id=clase.id) }}" style="text-decoration: none; color: inherit; display: block;">
         
-        <div class="card-pro" style="background: white; border-radius: 10px; border: 1px solid #E2E8F0; border-top: 4px solid var(--azul-claro); position: relative; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.03); transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 12px -3px rgba(0,0,0,0.08)';" onmouseout="this.style.transform='none'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.03)';">
+        <div class="card-pro" style="background: white; border-radius: 10px; border: 1px solid #E2E8F0; border-top: 4px solid {% if cat_item == 'Investigación' %}#7C3AED{% elif cat_item == 'Vinculación' %}#059669{% elif cat_item == 'Desarrollo Curricular' %}#D97706{% elif cat_item == 'Otra' %}#475569{% else %}var(--azul-claro){% endif %}; position: relative; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.03); transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 12px -3px rgba(0,0,0,0.08)';" onmouseout="this.style.transform='none'; this.style.boxShadow='0 2px 4px rgba(0,0,0,0.03)';">
           
           {% if clase.notificaciones_nuevas > 0 %}
           <div class="position-absolute" style="top: 8px; right: 8px; z-index: 10;">
@@ -155,7 +203,10 @@
               </div>
             </div>
             
-            <div class="mb-3">
+            <div class="mb-3 d-flex flex-wrap gap-1">
+              <span style="display: inline-block; padding: 0.2rem 0.5rem; border-radius: 4px; background: {% if cat_item == 'Investigación' %}#F5F3FF; border: 1px solid #DDD6FE; color: #6D28D9{% elif cat_item == 'Vinculación' %}#ECFDF5; border: 1px solid #A7F3D0; color: #047857{% elif cat_item == 'Desarrollo Curricular' %}#FFFBEB; border: 1px solid #FDE68A; color: #B45309{% elif cat_item == 'Otra' %}#F1F5F9; border: 1px solid #CBD5E1; color: #334155{% else %}#EFF6FF; border: 1px solid #BFDBFE; color: #1D4ED8{% endif %}; font-size: 0.68rem; font-weight: 700;">
+                {{ cat_item }}
+              </span>
               <span style="display: inline-block; padding: 0.2rem 0.5rem; border-radius: 4px; background: #F0F9FF; border: 1px solid #BAE6FD; color: #0284C7; font-size: 0.7rem; font-weight: 700;">
                 <i class="bi bi-calendar3 me-1"></i>{{ clase.periodo }}
               </span>
@@ -212,7 +263,7 @@
   <div class="modal-dialog">
     <div class="modal-content border-0" style="border-radius: 12px; overflow: hidden;">
       <div class="modal-header" style="background: var(--azul-oscuro); color: white; border: none;">
-        <h5 class="modal-title" style="font-weight: 600;"><i class="bi bi-plus-circle me-2"></i>Registrar Nueva Clase</h5>
+        <h5 class="modal-title" id="tituloModalNuevaAsignacion" style="font-weight: 600;"><i class="bi bi-plus-circle me-2"></i>Registrar Nueva Asignación</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <form action="{{ url_for('nueva_clase') }}" method="POST">
@@ -220,24 +271,25 @@
           {% if clases %}
           <div class="mb-3 p-3 rounded-3" style="background: #EFF6FF; border: 1px solid #BFDBFE;">
             <label class="form-label-pro mb-1" style="color: #1E40AF;">
-              <i class="bi bi-copy me-1"></i>Replicar una clase anterior (Opcional)
+              <i class="bi bi-copy me-1"></i>Replicar una asignación anterior (Opcional)
             </label>
             <select name="clase_origen_id" id="select_duplicar_clase" class="form-control-pro bg-white" onchange="cargarDatosClaseAnterior()" style="font-size: 0.85rem;">
               <option value="">— Crear espacio desde cero —</option>
               {% for c in clases %}
               <option value="{{ c.id }}"
+                      data-categoria="{{ c.categoria_actividad or 'Clase' }}"
                       data-nombre="{{ c.nombre_espacio }}"
                       data-codigo="{{ c.codigo or '' }}"
                       data-uv="{{ c.uv_ca or '' }}"
                       data-modalidad="{{ c.modalidad or '' }}"
                       data-naturaleza="{{ c.naturaleza or '' }}"
                       data-evidencias="{{ c.total_evidencias }}">
-                {{ c.nombre_espacio }}{% if c.codigo %} ({{ c.codigo }}){% endif %} · {{ c.periodo }}
+                [{{ c.categoria_actividad or 'Clase' }}] {{ c.nombre_espacio }}{% if c.codigo %} ({{ c.codigo }}){% endif %} · {{ c.periodo }}
               </option>
               {% endfor %}
             </select>
             <small class="d-block mt-1" style="font-size: 0.73rem; color: #3B82F6;">
-              Rellena automáticamente los datos y hereda las categorías de evidencias configuradas en esa clase.
+              Rellena automáticamente los datos y hereda las categorías de evidencias configuradas en esa asignación.
             </small>
             <div id="wrap_duplicar_evidencias" class="form-check mt-2 pt-2" style="display: none; border-top: 1px dashed #93C5FD;">
               <input class="form-check-input" type="checkbox" name="duplicar_evidencias" value="1" id="chk_duplicar_evidencias">
@@ -249,7 +301,15 @@
           {% endif %}
 
           <div class="row g-3">
-            
+            <div class="col-12">
+              <label class="form-label-pro">Categoría de Asignación</label>
+              <select name="categoria_actividad" id="nueva_categoria_actividad" class="form-control-pro bg-white" onchange="ajustarCamposPorCategoria()" required>
+                {% for cat_opt in categorias_actividad %}
+                <option value="{{ cat_opt }}">{{ cat_opt }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
             <div class="col-md-6">
               <label class="form-label-pro">Período Académico</label>
               <select name="periodo_tipo" class="form-control-pro bg-white" required>
@@ -259,6 +319,7 @@
                 <option value="Tercer Trimestre">Tercer Trimestre</option>
                 <option value="Primer Semestre">Primer Semestre</option>
                 <option value="Segundo Semestre">Segundo Semestre</option>
+                <option value="Anual">Anual</option>
               </select>
             </div>
             
@@ -270,31 +331,31 @@
             </div>
 
             <div class="col-12">
-              <label class="form-label-pro">Nombre del Espacio de Aprendizaje</label>
-              <input type="text" name="nombre_espacio" id="nueva_nombre_espacio" class="form-control-pro bg-white" placeholder="Ej. Español General" required>
+              <label class="form-label-pro" id="lbl_nombre_espacio">Nombre del Espacio de Aprendizaje / Proyecto</label>
+              <input type="text" name="nombre_espacio" id="nueva_nombre_espacio" class="form-control-pro bg-white" placeholder="Ej. Español General / Proyecto de Investigación..." required>
             </div>
             <div class="col-md-6">
-              <label class="form-label-pro">Código</label>
+              <label class="form-label-pro" id="lbl_codigo_espacio">Código / Registro (Opcional)</label>
               <input type="text" name="codigo" id="nueva_codigo" class="form-control-pro bg-white" placeholder="Ej. EG-011">
             </div>
-            <div class="col-md-6">
-              <label class="form-label-pro">UV / CA</label>
+            <div class="col-md-6" id="wrap_nueva_uv">
+              <label class="form-label-pro">UV / CA (Opcional)</label>
               <input type="number" name="uv_ca" id="nueva_uv_ca" class="form-control-pro bg-white" placeholder="Ej. 4">
             </div>
-            <div class="col-md-6">
+            <div class="col-md-6" id="wrap_nueva_modalidad">
               <label class="form-label-pro">Modalidad</label>
-              <select name="modalidad" id="nueva_modalidad" class="form-control-pro bg-white" required>
-                <option value="" disabled selected>Seleccione...</option>
+              <select name="modalidad" id="nueva_modalidad" class="form-control-pro bg-white">
+                <option value="" selected>Seleccione...</option>
                 <option value="Presencial">Presencial</option>
                 <option value="Virtual">Virtual</option>
                 <option value="B-learning">B-learning</option>
                 <option value="Teledocencia">Teledocencia</option>
               </select>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-6" id="wrap_nueva_naturaleza">
               <label class="form-label-pro">Naturaleza</label>
               <select name="naturaleza" id="nueva_naturaleza" class="form-control-pro bg-white">
-                <option value="" disabled selected>Seleccione...</option>
+                <option value="" selected>Seleccione...</option>
                 <option value="Teórica">Teórica</option>
                 <option value="Práctica">Práctica</option>
                 <option value="Mixta">Mixta</option>
@@ -316,6 +377,44 @@
   // Año actual en el footer
   document.getElementById('currentYear').textContent = new Date().getFullYear();
 
+  function abrirModalNuevaAsignacion(categoria) {
+    const selCat = document.getElementById('nueva_categoria_actividad');
+    if (selCat) {
+      selCat.value = categoria;
+      ajustarCamposPorCategoria();
+    }
+    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalNuevaClase'));
+    modal.show();
+  }
+
+  function ajustarCamposPorCategoria() {
+    const selCat = document.getElementById('nueva_categoria_actividad');
+    if (!selCat) return;
+    const cat = selCat.value;
+    const titulo = document.getElementById('tituloModalNuevaAsignacion');
+    const lblNombre = document.getElementById('lbl_nombre_espacio');
+    const inpNombre = document.getElementById('nueva_nombre_espacio');
+    const wrapUv = document.getElementById('wrap_nueva_uv');
+    const wrapNat = document.getElementById('wrap_nueva_naturaleza');
+    const selMod = document.getElementById('nueva_modalidad');
+
+    if (titulo) titulo.innerHTML = `<i class="bi bi-plus-circle me-2"></i>Registrar Nueva Asignación · ${cat}`;
+
+    if (cat === 'Clase') {
+      if (lblNombre) lblNombre.textContent = 'Nombre del Espacio de Aprendizaje';
+      if (inpNombre) inpNombre.placeholder = 'Ej. Español General';
+      if (wrapUv) wrapUv.style.display = '';
+      if (wrapNat) wrapNat.style.display = '';
+      if (selMod) selMod.required = true;
+    } else {
+      if (lblNombre) lblNombre.textContent = `Nombre o Título de ${cat}`;
+      if (inpNombre) inpNombre.placeholder = `Ej. Proyecto o actividad de ${cat}...`;
+      if (wrapUv) wrapUv.style.display = 'none';
+      if (wrapNat) wrapNat.style.display = 'none';
+      if (selMod) selMod.required = false;
+    }
+  }
+
   // Autocompletar al elegir una clase anterior para replicar
   function cargarDatosClaseAnterior() {
     const sel = document.getElementById('select_duplicar_clase');
@@ -333,6 +432,12 @@
       if (wrapEv) wrapEv.style.display = 'none';
       if (chkEv) chkEv.checked = false;
       return;
+    }
+    const catOrigen = opt.getAttribute('data-categoria') || 'Clase';
+    const selCat = document.getElementById('nueva_categoria_actividad');
+    if (selCat) {
+      selCat.value = catOrigen;
+      ajustarCamposPorCategoria();
     }
     document.getElementById('nueva_nombre_espacio').value = opt.getAttribute('data-nombre') || '';
     document.getElementById('nueva_codigo').value = opt.getAttribute('data-codigo') || '';
@@ -402,6 +507,8 @@
   function filtrarClases() {
     const textoBusqueda = document.getElementById('buscadorClases').value.toLowerCase();
     const anioFiltro = document.getElementById('filtroAnio').value;
+    const catEl = document.getElementById('filtroCategoria');
+    const catFiltro = catEl ? catEl.value : 'Todas';
     const tarjetas = document.querySelectorAll('.clase-item');
     let visibles = 0;
 
@@ -410,11 +517,13 @@
       const codigo = (tarjeta.getAttribute('data-codigo') || '').toLowerCase();
       const periodo = (tarjeta.getAttribute('data-periodo') || '').toLowerCase();
       const anio = tarjeta.getAttribute('data-anio');
+      const categoria = tarjeta.getAttribute('data-categoria') || 'Clase';
 
-      const coincideTexto = nombre.includes(textoBusqueda) || codigo.includes(textoBusqueda) || periodo.includes(textoBusqueda);
+      const coincideTexto = nombre.includes(textoBusqueda) || codigo.includes(textoBusqueda) || periodo.includes(textoBusqueda) || categoria.toLowerCase().includes(textoBusqueda);
       const coincideAnio = (anioFiltro === 'Todos') || (anio === anioFiltro);
+      const coincideCat = (catFiltro === 'Todas') || (categoria === catFiltro);
 
-      if (coincideTexto && coincideAnio) {
+      if (coincideTexto && coincideAnio && coincideCat) {
         tarjeta.style.display = 'block';
         visibles++;
       } else {

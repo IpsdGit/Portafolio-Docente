@@ -299,8 +299,8 @@
                       <button type="button"
                         class="btn btn-sm"
                         style="background:#FEF2F2; color:#DC2626; border:1px solid #FECACA; font-size:0.76rem; font-weight:700; border-radius:8px; padding:0.28rem 0.7rem;"
-                        title="Cambiar a rol de Docente"
-                        onclick="confirmarCambioRol({{ a.id }}, '{{ a.nombre }}', 'Docente', '')">
+                        title="Cambiar a rol de Docente y registrar gestión en su perfil"
+                        onclick="confirmarCambioRol({{ a.id }}, '{{ a.nombre }}', 'Docente', '{{ a.carrera_id or '' }}', '{{ a.fecha_inicio_cargo or '' }}', '{{ a.cargo_admin or 'Autoridad Académica' }}', '{{ a.nombre_carrera or '' }}')">
                         <i class="bi bi-arrow-down-circle-fill me-1"></i>Pasar a Docente
                       </button>
                     </div>
@@ -392,16 +392,24 @@
             Define las categorías base de evidencias que se asignan automáticamente al crear una nueva clase. También puedes personalizar cada clase individual desde el expediente de cada docente.
           </p>
           <form action="{{ url_for('agregar_catalogo_evidencia') }}" method="POST" class="d-flex flex-wrap gap-2 mb-4">
-            <input type="text" name="nombre_categoria" class="form-control-pro bg-white" style="max-width: 440px;" placeholder="Ej. Guía de Práctica de Laboratorio..." required>
+            <select name="categoria" class="form-control-pro bg-white" style="max-width: 220px;" required>
+              {% for cat_opt in categorias_actividad %}
+              <option value="{{ cat_opt }}">{{ cat_opt }}</option>
+              {% endfor %}
+            </select>
+            <input type="text" name="nombre_categoria" class="form-control-pro bg-white" style="max-width: 420px;" placeholder="Ej. Guía de Práctica / Protocolo..." required>
             <button type="submit" class="btn-primary-pro" style="margin-top: 0;">
-              <i class="bi bi-plus-lg me-1"></i>Agregar Categoría Base
+              <i class="bi bi-plus-lg me-1"></i>Agregar Evidencia Base
             </button>
           </form>
           <div class="row g-2">
             {% for cat in catalogo_evidencias %}
             <div class="col-md-6">
               <div class="d-flex justify-content-between align-items-center p-2 px-3 bg-white rounded-3 border">
-                <span style="font-size: 0.85rem; font-weight: 600; color: var(--azul-oscuro);">{{ loop.index }}. {{ cat.nombre }}</span>
+                <div>
+                  <span class="badge rounded-pill me-1" style="background: #EFF6FF; color: #1E40AF; border: 1px solid #BFDBFE; font-size: 0.68rem;">{{ cat.categoria or 'Clase' }}</span>
+                  <span style="font-size: 0.85rem; font-weight: 600; color: var(--azul-oscuro);">{{ cat.nombre }}</span>
+                </div>
                 <form action="{{ url_for('eliminar_catalogo_evidencia', cat_id=cat.id) }}" method="POST" onsubmit="return confirm('¿Eliminar «{{ cat.nombre }}» del catálogo base?');">
                   <button type="submit" class="btn-icon rojo" style="width: 28px; height: 28px; font-size: 0.78rem;" title="Eliminar">
                     <i class="bi bi-trash-fill"></i>
@@ -634,7 +642,7 @@
                 {% endfor %}
               </select>
             </div>
-            <div class="mb-form mb-0">
+            <div class="mb-form">
               <label class="form-label-pro">Cargo</label>
               <select name="cargo_admin" id="rol-cargo-select" class="form-control-pro bg-white">
                 <option value="">— Seleccionar cargo —</option>
@@ -642,6 +650,33 @@
                 <option value="{{ cargo }}">{{ cargo }}</option>
                 {% endfor %}
               </select>
+            </div>
+            <div class="mb-form mb-0">
+              <label class="form-label-pro">Fecha o Año de Inicio en el Cargo</label>
+              <input type="text" name="fecha_inicio_cargo" id="rol-fecha-inicio-cargo" class="form-control-pro bg-white" placeholder="Ej. 2026-01-15 o 2026">
+            </div>
+          </div>
+
+          <div id="bloque-historial-gestion" style="display: none; background: white; border: 1px solid #FDE68A; border-radius: 12px; padding: 1rem;">
+            <div style="font-size: 0.8rem; font-weight: 800; color: #92400E; margin-bottom: 0.5rem;">
+              <i class="bi bi-award-fill me-1"></i>Constancia Automática en su Perfil Docente
+            </div>
+            <p class="text-muted mb-2" style="font-size: 0.76rem;">
+              Se guardará automáticamente en el perfil del profesor que ejerció este cargo durante las siguientes fechas/años (justificando la ausencia de evidencias docentes en ese período):
+            </p>
+            <div class="row g-2 mb-2">
+              <div class="col-6">
+                <label class="form-label-pro" style="font-size: 0.74rem;">Desde (Fecha o Año)</label>
+                <input type="text" name="fecha_inicio_gestion" id="gestion-fecha-inicio" class="form-control-pro bg-white" placeholder="Ej. 2024 o 2024-02-01">
+              </div>
+              <div class="col-6">
+                <label class="form-label-pro" style="font-size: 0.74rem;">Hasta (Fecha o Año)</label>
+                <input type="text" name="fecha_fin_gestion" id="gestion-fecha-fin" class="form-control-pro bg-white" placeholder="Ej. 2026 o 2026-11-23">
+              </div>
+            </div>
+            <div>
+              <label class="form-label-pro" style="font-size: 0.74rem;">Nota de respaldo en el expediente</label>
+              <input type="text" name="observacion_gestion" id="gestion-observacion" class="form-control-pro bg-white" style="font-size: 0.8rem;">
             </div>
           </div>
         </div>
@@ -688,14 +723,16 @@
 
 <script>
   // Confirmar cambio de rol dinámico
-  function confirmarCambioRol(uid, nombre, nuevoRol, carreraId) {
+  function confirmarCambioRol(uid, nombre, nuevoRol, carreraId, fechaInicioCargo, cargoActual, carreraNombre) {
     const textoEl = document.getElementById('texto-confirmacion');
     const formEl = document.getElementById('form-cambiar-rol');
     const btnEl = document.getElementById('btn-confirmar-rol');
     const inputRol = document.getElementById('input-nuevo-rol');
     const bloqueAdmin = document.getElementById('bloque-datos-admin');
+    const bloqueGestion = document.getElementById('bloque-historial-gestion');
     const selCarrera = document.getElementById('rol-carrera-select');
     const selCargo = document.getElementById('rol-cargo-select');
+    const hoyIso = new Date().toISOString().slice(0, 10);
 
     inputRol.value = nuevoRol;
     formEl.action = `/admin/usuarios/${uid}/cambiar_rol`;
@@ -705,17 +742,27 @@
       btnEl.innerHTML = '<i class="bi bi-arrow-up-circle-fill me-1"></i>Promover a Autoridad';
       btnEl.style.background = 'linear-gradient(135deg, #B45309, #D97706)';
       bloqueAdmin.style.display = 'block';
+      if (bloqueGestion) bloqueGestion.style.display = 'none';
       selCarrera.required = true;
       selCargo.required = true;
       selCarrera.value = carreraId || '';
       selCargo.value = '';
+      const inpIni = document.getElementById('rol-fecha-inicio-cargo');
+      if (inpIni) inpIni.value = hoyIso;
     } else {
-      textoEl.innerHTML = `¿Deseas volver a <strong>${nombre}</strong> al rol de <strong>Docente</strong>? Conservará su carrera asignada y perderá el acceso al panel de administración.`;
-      btnEl.innerHTML = '<i class="bi bi-arrow-down-circle-fill me-1"></i>Pasar a Docente';
+      textoEl.innerHTML = `¿Deseas volver a <strong>${nombre}</strong> al rol de <strong>Docente</strong>? Conservará su carrera asignada y quedará registrada su gestión administrativa en su perfil:`;
+      btnEl.innerHTML = '<i class="bi bi-arrow-down-circle-fill me-1"></i>Pasar a Docente y Registrar Gestión';
       btnEl.style.background = 'linear-gradient(135deg, #DC2626, #EF4444)';
       bloqueAdmin.style.display = 'none';
+      if (bloqueGestion) bloqueGestion.style.display = 'block';
       selCarrera.required = false;
       selCargo.required = false;
+      const inpGIni = document.getElementById('gestion-fecha-inicio');
+      const inpGFin = document.getElementById('gestion-fecha-fin');
+      const inpGObs = document.getElementById('gestion-observacion');
+      if (inpGIni) inpGIni.value = fechaInicioCargo || new Date().getFullYear().toString();
+      if (inpGFin) inpGFin.value = hoyIso;
+      if (inpGObs) inpGObs.value = `Ejerció funciones como ${cargoActual || 'Autoridad Académica'}${carreraNombre ? ' en ' + carreraNombre : ''} durante este período (exento de carga completa de evidencias docentes).`;
     }
 
     bootstrap.Modal.getOrCreateInstance(document.getElementById('modalCambiarRol')).show();

@@ -352,8 +352,13 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body p-4" style="background: #F8FAFC;">
-        <form action="{{ url_for('agregar_catalogo_evidencia') }}" method="POST" class="d-flex gap-2 mb-4">
-          <input type="text" name="nombre_categoria" class="form-control-pro bg-white" placeholder="Nombre de nueva categoría de evidencia (ej. Guía de Laboratorio)..." required>
+        <form action="{{ url_for('agregar_catalogo_evidencia') }}" method="POST" class="d-flex flex-wrap gap-2 mb-4">
+          <select name="categoria" class="form-control-pro bg-white" style="max-width: 210px;" required>
+            {% for cat_opt in categorias_actividad %}
+            <option value="{{ cat_opt }}">{{ cat_opt }}</option>
+            {% endfor %}
+          </select>
+          <input type="text" name="nombre_categoria" class="form-control-pro bg-white" style="flex: 1; min-width: 240px;" placeholder="Nombre de nueva evidencia obligatoria..." required>
           <button type="submit" class="btn-primary-pro" style="white-space: nowrap; margin-top: 0;">
             <i class="bi bi-plus-lg me-1"></i>Agregar
           </button>
@@ -361,8 +366,11 @@
         <div class="d-flex flex-column gap-2" style="max-height: 360px; overflow-y: auto;">
           {% for cat in catalogo_evidencias %}
           <div class="d-flex justify-content-between align-items-center p-2 px-3 bg-white rounded-3 border">
-            <span style="font-size: 0.86rem; font-weight: 600; color: var(--azul-oscuro);">{{ loop.index }}. {{ cat.nombre }}</span>
-            <form action="{{ url_for('eliminar_catalogo_evidencia', cat_id=cat.id) }}" method="POST" onsubmit="return confirm('¿Eliminar «{{ cat.nombre }}» del catálogo base para nuevas clases?');">
+            <div>
+              <span class="badge rounded-pill me-2" style="background: #EFF6FF; color: #1E40AF; border: 1px solid #BFDBFE; font-size: 0.7rem;">{{ cat.categoria or 'Clase' }}</span>
+              <span style="font-size: 0.86rem; font-weight: 600; color: var(--azul-oscuro);">{{ cat.nombre }}</span>
+            </div>
+            <form action="{{ url_for('eliminar_catalogo_evidencia', cat_id=cat.id) }}" method="POST" onsubmit="return confirm('¿Eliminar «{{ cat.nombre }}» del catálogo base para nuevas asignaciones?');">
               <button type="submit" class="btn-icon rojo" style="width: 28px; height: 28px; font-size: 0.8rem;" title="Eliminar del catálogo">
                 <i class="bi bi-trash-fill"></i>
               </button>

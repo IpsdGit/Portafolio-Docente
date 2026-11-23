@@ -88,6 +88,29 @@
       </div>
     </div>
 
+    {% if historial_cargos %}
+    <div style="background: #EFF6FF; border-top: 1px solid #BFDBFE; padding: 1.2rem 1.5rem;">
+      <h6 style="color: #1E40AF; font-weight: 800; margin-bottom: 0.75rem;">
+        <i class="bi bi-shield-fill-check me-2" style="color: #2563EB;"></i>Historial de Gestión y Autoridad Académica (Constancia del Sistema)
+      </h6>
+      <div class="row g-2">
+        {% for h in historial_cargos %}
+        <div class="col-md-6">
+          <div class="p-2 px-3 bg-white rounded-3" style="border: 1px solid #BFDBFE;">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-1">
+              <strong style="color: var(--azul-oscuro); font-size: 0.85rem;">{{ h.cargo }} · {{ h.carrera_nombre }}</strong>
+              <span class="badge bg-primary bg-opacity-10 text-primary border border-primary" style="font-size: 0.7rem;">{{ h.fecha_inicio }} — {{ h.fecha_fin }}</span>
+            </div>
+            {% if h.observacion %}
+            <div style="font-size: 0.76rem; color: #475569; margin-top: 0.2rem;">{{ h.observacion }}</div>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
     {% if titulos %}
     <div style="background: #FFFBEB; border-top: 1px solid #FDE68A; padding: 1.2rem 1.5rem;">
       <h6 style="color: #92400E; font-weight: 700; margin-bottom: 1rem;"><i class="bi bi-mortarboard-fill me-2"></i>Títulos Académicos Registrados</h6>
@@ -192,8 +215,12 @@
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ clase.id }}" style="background-color: white; padding: 1.2rem;">
               <div class="d-flex justify-content-between align-items-center w-100 me-3">
                 <div>
-                  <h6 style="margin:0; font-weight: 800; color: var(--azul-oscuro);">{{ clase.nombre_espacio }} <span class="badge bg-light text-secondary border ms-2" style="font-size:.7rem;">{{ clase.codigo }}</span></h6>
-                  <small class="text-muted"><i class="bi bi-calendar3 me-1"></i>{{ clase.periodo }} | Modalidad: {{ clase.modalidad }}</small>
+                  <h6 style="margin:0; font-weight: 800; color: var(--azul-oscuro);">
+                    <span class="badge rounded-pill me-1" style="background:#EFF6FF; color:#1E40AF; border:1px solid #BFDBFE; font-size:.68rem;">{{ clase.categoria_actividad or 'Clase' }}</span>
+                    {{ clase.nombre_espacio }}
+                    <span class="badge bg-light text-secondary border ms-2" style="font-size:.7rem;">{{ clase.codigo }}</span>
+                  </h6>
+                  <small class="text-muted"><i class="bi bi-calendar3 me-1"></i>{{ clase.periodo }} | Modalidad: {{ clase.modalidad or 'N/A' }}</small>
                 </div>
                 <div class="text-end ocultar-en-pdf">
                   <span class="badge bg-success bg-opacity-10 text-success border border-success"><i class="bi bi-paperclip"></i> {{ clase.evidencias|length }} Evidencias</span>
