@@ -302,11 +302,11 @@
         </button>
       </div>
 
-      <div id="area-informe-clase" class="card-pro" style="background: white; padding: 2.25rem; border: 1px solid var(--borde);">
+      <div id="area-informe-clase" class="card-pro" style="background: white; padding: 2rem 2.25rem; border: 1px solid var(--borde); width: 100%; box-sizing: border-box;">
         <!-- Encabezado Institucional -->
         <div class="d-flex align-items-center justify-content-between pb-3 mb-4" style="border-bottom: 3px solid var(--azul-oscuro);">
           <div class="d-flex align-items-center gap-3">
-            <img src="{{ url_for('static', filename='img/logo_unah.jpg') }}" alt="UNAH" style="height: 68px; width: auto; object-fit: contain;">
+            <img src="{{ url_for('static', filename='img/logo_unah.jpg') }}" alt="UNAH" style="height: 64px; width: auto; object-fit: contain;">
             <div>
               <h5 style="color: var(--azul-oscuro); font-weight: 800; margin: 0; letter-spacing: -0.01em;">UNIVERSIDAD NACIONAL AUTÓNOMA DE HONDURAS</h5>
               <div style="color: #475569; font-weight: 700; font-size: 0.9rem;">Informe de Portafolio y Cumplimiento de Evidencias · {{ cat_actual }}</div>
@@ -321,35 +321,31 @@
         </div>
 
         <!-- 1. Datos Generales -->
-        <h6 style="color: var(--azul-oscuro); font-weight: 800; font-size: 0.92rem; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.75rem;">
+        <h6 style="color: var(--azul-oscuro); font-weight: 800; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.6rem;">
           1. Ficha General de la Asignación
         </h6>
-        <div class="row g-3 p-3 mb-4 rounded-3" style="background: #F8FAFC; border: 1px solid #E2E8F0; font-size: 0.85rem;">
-          <div class="col-md-4">
-            <small class="text-muted d-block fw-bold" style="font-size: 0.7rem; text-transform: uppercase;">Docente Responsable</small>
-            <strong style="color: var(--azul-oscuro);">{{ nombre }}</strong>
-          </div>
-          <div class="col-md-4">
-            <small class="text-muted d-block fw-bold" style="font-size: 0.7rem; text-transform: uppercase;">Nombre / Espacio</small>
-            <strong style="color: var(--azul-oscuro);">{{ clase.nombre_espacio }}</strong>
-          </div>
-          <div class="col-md-4">
-            <small class="text-muted d-block fw-bold" style="font-size: 0.7rem; text-transform: uppercase;">Categoría y Código</small>
-            <span>{{ cat_actual }} · <strong>{{ clase.codigo or 'S/C' }}</strong></span>
-          </div>
-          <div class="col-md-4">
-            <small class="text-muted d-block fw-bold" style="font-size: 0.7rem; text-transform: uppercase;">Período Académico</small>
-            <span>{{ clase.periodo }}</span>
-          </div>
-          <div class="col-md-4">
-            <small class="text-muted d-block fw-bold" style="font-size: 0.7rem; text-transform: uppercase;">Modalidad / Naturaleza</small>
-            <span>{{ clase.modalidad or 'N/A' }}{% if clase.naturaleza %} · {{ clase.naturaleza }}{% endif %}{% if clase.uv_ca %} ({{ clase.uv_ca }} UV){% endif %}</span>
-          </div>
-          <div class="col-md-4">
-            <small class="text-muted d-block fw-bold" style="font-size: 0.7rem; text-transform: uppercase;">Categorías Cubiertas</small>
-            <strong style="color: var(--exito);">{{ tipos_completados }} de {{ total_tipos }} categorías ({{ porcentaje | int }}%)</strong>
-          </div>
-        </div>
+        <table class="table table-bordered mb-4" style="font-size: 0.83rem; border-color: #CBD5E1; width: 100%;">
+          <tbody>
+            <tr>
+              <th style="background: #F8FAFC; color: var(--azul-oscuro); width: 18%;">Docente Responsable</th>
+              <td style="width: 32%; font-weight: 700; color: var(--azul-oscuro);">{{ nombre }}</td>
+              <th style="background: #F8FAFC; color: var(--azul-oscuro); width: 18%;">Nombre / Espacio</th>
+              <td style="width: 32%; font-weight: 700; color: var(--azul-oscuro);">{{ clase.nombre_espacio }}</td>
+            </tr>
+            <tr>
+              <th style="background: #F8FAFC; color: var(--azul-oscuro);">Categoría y Código</th>
+              <td>{{ cat_actual }} · <strong>{{ clase.codigo or 'S/C' }}</strong></td>
+              <th style="background: #F8FAFC; color: var(--azul-oscuro);">Período Académico</th>
+              <td>{{ clase.periodo }}</td>
+            </tr>
+            <tr>
+              <th style="background: #F8FAFC; color: var(--azul-oscuro);">Modalidad / Naturaleza</th>
+              <td>{{ clase.modalidad or 'N/A' }}{% if clase.naturaleza %} · {{ clase.naturaleza }}{% endif %}{% if clase.uv_ca %} ({{ clase.uv_ca }} UV){% endif %}</td>
+              <th style="background: #F8FAFC; color: var(--azul-oscuro);">Categorías Cubiertas</th>
+              <td><strong style="color: var(--exito);">{{ tipos_completados }} de {{ total_tipos }} categorías ({{ porcentaje | int }}%)</strong></td>
+            </tr>
+          </tbody>
+        </table>
 
         <!-- 2. Matriz de Evidencias Recopiladas -->
         <h6 style="color: var(--azul-oscuro); font-weight: 800; font-size: 0.92rem; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.75rem;">
@@ -442,18 +438,14 @@
         {% endif %}
 
         <!-- 4. Bloque de Firmas -->
-        <div class="row mt-5 pt-4 text-center" style="font-size: 0.82rem;">
-          <div class="col-6">
-            <div style="border-top: 1px solid #475569; width: 75%; margin: 0 auto; padding-top: 0.4rem;">
-              <strong style="color: var(--azul-oscuro);">{{ nombre }}</strong><br>
-              <span class="text-muted">Firma del Docente</span>
-            </div>
+        <div class="d-flex justify-content-around mt-5 pt-4 text-center" style="font-size: 0.82rem;">
+          <div style="width: 40%; border-top: 1px solid #475569; padding-top: 0.4rem;">
+            <strong style="color: var(--azul-oscuro);">{{ nombre }}</strong><br>
+            <span class="text-muted">Firma del Docente</span>
           </div>
-          <div class="col-6">
-            <div style="border-top: 1px solid #475569; width: 75%; margin: 0 auto; padding-top: 0.4rem;">
-              <strong style="color: var(--azul-oscuro);">Jefatura / Coordinación de Carrera</strong><br>
-              <span class="text-muted">Revisión y Visto Bueno</span>
-            </div>
+          <div style="width: 40%; border-top: 1px solid #475569; padding-top: 0.4rem;">
+            <strong style="color: var(--azul-oscuro);">Jefatura / Coordinación de Carrera</strong><br>
+            <span class="text-muted">Revisión y Visto Bueno</span>
           </div>
         </div>
       </div>
@@ -634,35 +626,26 @@
 <script>
   function exportarInformeClasePDF() {
     const area = document.getElementById('area-informe-clase');
+    const mainContent = document.querySelector('.main-content');
     const linksOcultar = area.querySelectorAll('.ocultar-en-informe-pdf');
     linksOcultar.forEach(el => el.style.display = 'none');
 
-    const prevWidth = area.style.width;
-    const prevMaxWidth = area.style.maxWidth;
-    const prevMargin = area.style.margin;
-    const prevPadding = area.style.padding;
-
+    const prevMainPadding = mainContent ? mainContent.style.padding : '';
+    if (mainContent) mainContent.style.padding = '0';
     window.scrollTo(0, 0);
-    area.style.width = '680px';
-    area.style.maxWidth = '680px';
-    area.style.margin = '0';
-    area.style.padding = '1.25rem 1.5rem 1.25rem 1.25rem';
 
     const opciones = {
-      margin:       [0.45, 0.45, 0.6, 0.45],
+      margin:       [0.4, 0.4, 0.55, 0.4],
       filename:     'Informe_{{ (clase.categoria_actividad or "Clase") | replace(" ", "_") }}_{{ clase.nombre_espacio | replace(" ", "_") }}.pdf',
       image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true, letterRendering: true, scrollX: 0, scrollY: 0, windowWidth: 720 },
+      html2canvas:  { scale: 2, useCORS: true, scrollX: 0, scrollY: 0 },
       jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' },
       pagebreak:    { mode: ['css', 'legacy'], avoid: ['tr', '.p-3'] }
     };
 
     function restaurarEstiloArea() {
       linksOcultar.forEach(el => el.style.display = '');
-      area.style.width = prevWidth;
-      area.style.maxWidth = prevMaxWidth;
-      area.style.margin = prevMargin;
-      area.style.padding = prevPadding;
+      if (mainContent) mainContent.style.padding = prevMainPadding;
     }
 
     html2pdf()
@@ -678,11 +661,11 @@
           pdf.setPage(i);
           pdf.setDrawColor(203, 213, 225);
           pdf.setLineWidth(0.01);
-          pdf.line(0.45, pageHeight - 0.42, pageWidth - 0.45, pageHeight - 0.42);
+          pdf.line(0.4, pageHeight - 0.38, pageWidth - 0.4, pageHeight - 0.38);
           pdf.setFontSize(8);
           pdf.setTextColor(100, 116, 139);
-          pdf.text('Sistema Institucional de Portafolio Docente · UNAH — {{ clase.nombre_espacio }}', 0.45, pageHeight - 0.27);
-          pdf.text('Página ' + i + ' de ' + totalPages, pageWidth - 0.45, pageHeight - 0.27, { align: 'right' });
+          pdf.text('Sistema Institucional de Portafolio Docente · UNAH — {{ clase.nombre_espacio }}', 0.4, pageHeight - 0.24);
+          pdf.text('Página ' + i + ' de ' + totalPages, pageWidth - 0.4, pageHeight - 0.24, { align: 'right' });
         }
       })
       .save()

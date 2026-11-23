@@ -15,15 +15,14 @@
   /* ── Maquetación Institucional para Exportación PDF / Impresión ── */
   #documento-pdf-institucional {
     display: none;
-    width: 680px;
-    max-width: 100%;
+    width: 100%;
     margin: 0;
-    padding: 4px 10px 4px 4px;
+    padding: 16px 24px;
     box-sizing: border-box;
     background: #FFFFFF;
     color: #0F172A;
     font-family: 'Inter', Arial, sans-serif;
-    font-size: 11px;
+    font-size: 12px;
     line-height: 1.45;
   }
   .pdf-no-break,
@@ -790,6 +789,7 @@
   // LÓGICA DE EXPORTACIÓN A PDF INSTITUCIONAL CON CONTROL DE SALTOS DE PÁGINA Y NUMERACIÓN
   function generarPDF() {
     const docPdf = document.getElementById('documento-pdf-institucional');
+    const areaVista = document.getElementById('area-impresion');
     const btnPdf = document.getElementById('btn-descargar-pdf');
     const textoOriginalBtn = btnPdf ? btnPdf.innerHTML : '';
 
@@ -798,17 +798,28 @@
       btnPdf.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Generando PDF...';
     }
 
-    window.scrollTo(0, 0);
+    // Ocultar temporalmente la vista interactiva y mostrar el documento oficial en su lugar
+    if (areaVista) areaVista.style.display = 'none';
     docPdf.style.display = 'block';
+    window.scrollTo(0, 0);
 
     const opciones = {
-      margin:       [0.45, 0.45, 0.6, 0.45],
+      margin:       [0.4, 0.4, 0.55, 0.4],
       filename:     'Expediente_UNAH_{{ docente.nombre | replace(" ", "_") }}.pdf',
       image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true, letterRendering: true, scrollX: 0, scrollY: 0, windowWidth: 720 },
+      html2canvas:  { scale: 2, useCORS: true, scrollX: 0, scrollY: 0 },
       jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' },
       pagebreak:    { mode: ['css', 'legacy'], avoid: ['.pdf-no-break', 'tr', '.pdf-card-bloque', '.pdf-firmas-bloque', '.pdf-seccion-titulo'] }
     };
+
+    function restaurarVista() {
+      docPdf.style.display = 'none';
+      if (areaVista) areaVista.style.display = '';
+      if (btnPdf) {
+        btnPdf.disabled = false;
+        btnPdf.innerHTML = textoOriginalBtn;
+      }
+    }
 
     html2pdf()
       .set(opciones)
@@ -824,29 +835,17 @@
           pdf.setPage(i);
           pdf.setDrawColor(203, 213, 225);
           pdf.setLineWidth(0.01);
-          pdf.line(0.45, pageHeight - 0.42, pageWidth - 0.45, pageHeight - 0.42);
+          pdf.line(0.4, pageHeight - 0.38, pageWidth - 0.4, pageHeight - 0.38);
 
           pdf.setFontSize(8);
           pdf.setTextColor(100, 116, 139);
-          pdf.text('Sistema Institucional de Portafolio Docente · UNAH — Expediente: {{ docente.nombre }}', 0.45, pageHeight - 0.27);
-          pdf.text('Página ' + i + ' de ' + totalPages, pageWidth - 0.45, pageHeight - 0.27, { align: 'right' });
+          pdf.text('Sistema Institucional de Portafolio Docente · UNAH — Expediente: {{ docente.nombre }}', 0.4, pageHeight - 0.24);
+          pdf.text('Página ' + i + ' de ' + totalPages, pageWidth - 0.4, pageHeight - 0.24, { align: 'right' });
         }
       })
       .save()
-      .then(function () {
-        docPdf.style.display = 'none';
-        if (btnPdf) {
-          btnPdf.disabled = false;
-          btnPdf.innerHTML = textoOriginalBtn;
-        }
-      })
-      .catch(function () {
-        docPdf.style.display = 'none';
-        if (btnPdf) {
-          btnPdf.disabled = false;
-          btnPdf.innerHTML = textoOriginalBtn;
-        }
-      });
+      .then(restaurarVista)
+      .catch(restaurarVista);
   }
 
   // Lógica para cambiar el color de las pestañas activas
